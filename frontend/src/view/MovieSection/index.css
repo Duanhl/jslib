@@ -1,0 +1,132 @@
+.movie-section {
+    max-width: 1800px;
+    padding: 0 24px;
+    margin: 24px auto 16px;
+}
+
+.movie-link {
+    display: block;
+    width: 100%;
+}
+
+.thumb-cover {
+    position: relative;
+    /*width: 100%;*/
+    padding-top: 56.25%; /* 16:9 比例 */
+    background: #f7f7f8;
+    overflow: hidden;
+}
+
+.thumb-cover img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.thumb-title {
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 350px;
+}
+
+/* 响应式布局优化 */
+@media (min-width: 1440px) {
+    .movie-section {
+        max-width: 1440px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .movie-section {
+        max-width: 1600px;
+    }
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.section-header h4 {
+    margin: 0 !important;
+    color: #18191c !important;
+}
+
+.more-link {
+    color: #9499a0;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.more-link:hover {
+    color: #fb7299;
+}
+
+.movie-link {
+    display: block;
+    text-decoration: none;
+}
+
+.movie-card {
+    border-radius: 6px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.movie-card .ant-card-body {
+    padding: 12px;
+}
+
+.movie-card .ant-card-meta-title {
+    font-size: 14px;
+    color: #18191c;
+    margin-bottom: 8px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.movie-cover {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    background: #f7f7f8;
+    overflow: hidden;
+}
+
+.movie-cover img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.movie-stats {
+    color: #9499a0;
+    font-size: 12px;
+}
+
+.card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 0.2s;
+    color: #fff;
+    font-size: 32px;
+}

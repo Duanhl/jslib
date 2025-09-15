@@ -1,0 +1,20 @@
+.torrents-page {
+    min-height: 100vh;
+    background: #f1f2f3;
+    margin-top: 64px;
+}
+
+.torrents-header {
+    background: #fff;
+    padding: 24px 0;
+    margin-bottom: 24px;
+}
+
+.torrents-header-content {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}

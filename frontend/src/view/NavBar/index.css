@@ -1,0 +1,118 @@
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+}
+
+.navbar-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+}
+
+.logo {
+    margin-right: 40px;
+    text-decoration: none;
+}
+
+.logo-text {
+    font-size: 28px;
+    font-weight: bold;
+    background: linear-gradient(45deg, #00a1d6, #fb7299, #ff9db6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+    transform: rotate(-5deg);
+    text-shadow: 2px 2px 4px rgba(251, 114, 153, 0.2);
+    transition: transform 0.3s;
+}
+
+.logo-text:hover {
+    transform: rotate(-5deg) scale(1.05);
+}
+
+.nav-links {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+
+}
+
+.nav-links a {
+    color: #18191c;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: bold;
+    transition: color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.nav-links a:hover {
+    color: #fb7299;
+}
+
+.creators-link {
+    position: relative;
+}
+
+.creators-link::after {
+    content: 'NEW';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #fb7299;
+    color: white;
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transform: scale(0.8);
+}
+
+.search-box {
+    margin-left: auto;
+    width: 300px;
+}
+
+.user-actions {
+    margin-left: 24px;
+}
+
+/* Antd 组件样式覆盖 */
+.ant-input-search .ant-input:hover,
+.ant-input-search .ant-input:focus {
+    border-color: #fb7299;
+}
+
+.ant-input-search .ant-input-search-button {
+    background-color: #fb7299;
+    border-color: #fb7299;
+}
+
+.ant-input-search .ant-input-search-button:hover {
+    background-color: #e45c84;
+    border-color: #e45c84;
+}
+
+.ant-btn-primary {
+    background-color: #fb7299;
+}
+
+.ant-btn-primary:hover {
+    background-color: #e45c84 !important;
+}
+
+.ant-btn:hover {
+    color: #fb7299 !important;
+    border-color: #fb7299 !important;
+}

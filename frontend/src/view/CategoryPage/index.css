@@ -1,0 +1,250 @@
+.category-page {
+    min-height: 100vh;
+    background: #f1f2f3;
+    padding-top: 20px;
+}
+
+.category-header {
+    background: #fff;
+    padding: 16px 0;
+    margin-bottom: 4px;
+}
+
+.header-content {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-content h2 {
+    font-size: 24px;
+    color: #18191c;
+    margin: 0 0 4px;
+}
+
+.sub-title {
+    font-size: 14px;
+    color: #61666d;
+}
+
+.header-right {
+    text-align: right;
+    color: #61666d;
+    font-size: 14px;
+}
+
+.filter-section {
+    background: #fff;
+    margin-bottom: 20px;
+}
+
+.filter-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 8px 24px;
+}
+
+.filter-row {
+    display: flex;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f2f3;
+}
+
+.filter-row:last-child {
+    border-bottom: none;
+}
+
+.filter-label {
+    width: 48px;
+    color: #61666d;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.filter-row .ant-radio-group {
+    flex: 1;
+}
+
+.ant-radio-wrapper {
+    color: #61666d !important;
+    margin-right: 32px !important;
+}
+
+.ant-radio-wrapper-checked {
+    color: #fb7299 !important;
+}
+
+.ant-radio-checked .ant-radio-inner {
+    border-color: #fb7299 !important;
+    background-color: #fb7299 !important;
+}
+
+.ant-radio:hover .ant-radio-inner {
+    border-color: #fb7299 !important;
+}
+
+.content-section {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 24px 40px;
+}
+
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.video-card {
+    background: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.video-card:hover {
+    transform: translateY(-2px);
+}
+
+.video-cover {
+    position: relative;
+    padding-top: 56.25%;
+    background: #f7f7f8;
+}
+
+.video-cover img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-duration {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    padding: 0 4px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    font-size: 12px;
+    border-radius: 2px;
+}
+
+.video-score.ant-tag {
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(251, 114, 153, 0.9);
+    border: none;
+    font-size: 12px;
+}
+
+.video-info {
+    padding: 10px;
+}
+
+.video-title {
+    font-size: 14px;
+    color: #18191c;
+    margin: 0 0 6px;
+    line-height: 1.4;
+    height: 40px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.video-uploader {
+    margin-bottom: 6px;
+}
+
+.up-name {
+    font-size: 12px;
+    color: #61666d;
+}
+
+.video-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: #9499a0;
+}
+
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.ant-pagination-item-active {
+    border-color: #fb7299 !important;
+    background: #fb7299 !important;
+}
+
+.ant-pagination-item-active a {
+    color: #fff !important;
+}
+
+.ant-pagination-item:hover {
+    border-color: #fb7299 !important;
+}
+
+.ant-pagination-item:hover a {
+    color: #fb7299 !important;
+}
+
+.ant-pagination-prev:hover .ant-pagination-item-link,
+.ant-pagination-next:hover .ant-pagination-item-link {
+    border-color: #fb7299 !important;
+    color: #fb7299 !important;
+}
+
+@media (max-width: 1400px) {
+    .video-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 1100px) {
+    .video-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 800px) {
+    .video-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .ant-radio-wrapper {
+        margin-right: 16px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-right {
+        margin-top: 12px;
+    }
+}
