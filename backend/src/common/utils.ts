@@ -58,3 +58,26 @@ export function decode91(e: string): string {
     // Buffer 浏览器可用 Uint8Array + TextDecoder 代替
     return Buffer.from(bytes).toString('utf-8');
 }
+
+// naming.ts
+type PlainObj = Record<string, any>;
+
+/** 下划线 → 小驼峰 */
+export function toCamel(obj: PlainObj): PlainObj {
+    const res: PlainObj = {};
+    for (const key of Object.keys(obj)) {
+        const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+        res[camel] = obj[key];
+    }
+    return res;
+}
+
+/** 小驼峰 → 下划线 */
+export function toSnake(obj: PlainObj): PlainObj {
+    const res: PlainObj = {};
+    for (const key of Object.keys(obj)) {
+        const snake = key.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
+        res[snake] = obj[key];
+    }
+    return res;
+}

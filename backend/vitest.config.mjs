@@ -1,4 +1,5 @@
-import { defineConfig } from 'vitest/config'
+// @ts-ignore
+import { defineConfig } from 'vitest/config';
 
 // https://vite.dev/config/
 export default defineConfig({

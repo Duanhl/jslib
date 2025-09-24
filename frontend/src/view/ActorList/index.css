@@ -1,7 +1,23 @@
 .creator-list {
     max-width: 1600px;
-    margin: 84px auto 40px;
+    margin: 16px auto 40px;
     padding: 0 24px;
+}
+
+.actor-header {
+    background: #fff;
+    padding: 24px 0;
+    margin-bottom: 24px;
+    margin-top: 72px;
+}
+
+.actor-header-content {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .header-card {

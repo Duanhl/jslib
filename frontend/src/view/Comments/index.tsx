@@ -1,5 +1,5 @@
 import './index.css';
-import {Comment} from "../../api/api.ts";
+import {Comment} from '@jslib/common';
 
 const Comments = (props: {comments: Comment[]}) => {
     const { comments } = props;

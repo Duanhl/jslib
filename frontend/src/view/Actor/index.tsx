@@ -4,7 +4,9 @@ import {Button, message, Popconfirm, Space, Typography} from 'antd';
 import {SyncOutlined} from '@ant-design/icons';
 import './index.css';
 import MovieSection from "../MovieSection";
-import {ActorInfo, getActorInfo, syncMovieByStar} from "../../api/api.ts";
+import {syncMovieByStar} from "../../api/api.ts";
+import {ActorInfo} from "@jslib/common";
+import {movieService} from "../../common/proxy.ts";
 
 const { Title, Text } = Typography;
 
@@ -15,7 +17,7 @@ const Actor = () => {
     useEffect(() => {
         (async () => {
             if(name) {
-                const res = await getActorInfo(name);
+                const res = await movieService.actor({name});
                 setActor(res);
             }
         })()

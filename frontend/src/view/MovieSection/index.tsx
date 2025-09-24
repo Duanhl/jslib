@@ -2,10 +2,11 @@ import {useEffect, useState} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {Card, Col, message, Pagination, Row, Space, Typography} from 'antd';
 import './index.css';
-import {listMovieByType, ListType, Movie, Video} from "../../api/api.ts";
 import {isUndefinedOrNull} from "../../common/types.ts";
 import {extractStandardJavSn, getDmmThumbURL} from "../../common/utils.ts";
 import {PlayCircleOutlined} from "@ant-design/icons";
+import {Movie, MovieListType, Video} from "@jslib/common";
+import {movieService} from "../../common/proxy.ts";
 
 const {Title} = Typography;
 
@@ -80,7 +81,7 @@ export const MovieCard = (props: { movie: Movie, magnet?: string, video?: Video}
     )
 };
 
-const MovieSection = (props: { type: ListType, keyword?: string, closeTitle?: boolean }) => {
+const MovieSection = (props: { type: MovieListType, keyword?: string, closeTitle?: boolean }) => {
     const {type, keyword, closeTitle} = props;
     const [total, setTotal] = useState(1);
     const [movies, setMovies] = useState<Movie[]>([]);
@@ -104,17 +105,17 @@ const MovieSection = (props: { type: ListType, keyword?: string, closeTitle?: bo
         const type = props.type;
         switch (type) {
             case 'popular':
-                pageResult = await listMovieByType({type, pageSize: 20});
+                pageResult = await movieService.list({keyword: '', type, pageSize: 20});
                 break;
             case 'wanted':
             case 'bestrated':
             case "col":
-                pageResult = await listMovieByType({type, page, pageSize});
+                pageResult = await movieService.list({keyword: '', type, page, pageSize});
                 break;
             case 'actress':
-            case 'tag':
+            case 'genre':
             case 'series':
-                pageResult = await listMovieByType({
+                pageResult = await movieService.list({
                     keyword: keyword!,
                     type, page, pageSize
                 });
@@ -139,8 +140,14 @@ const MovieSection = (props: { type: ListType, keyword?: string, closeTitle?: bo
             case 'series':
                 navigate(`/series/${keyword}?pageNo=${page}`);
                 break;
-            case 'tag':
+            case 'genre':
                 navigate(`/genre/${keyword}?pageNo=${page}`);
+                break
+            case "col":
+                navigate(`/cols?pageNo=${page}`);
+                break;
+            case "popular":
+                // do nothing
                 break;
         }
     };
@@ -174,7 +181,7 @@ const MovieSection = (props: { type: ListType, keyword?: string, closeTitle?: bo
     );
 };
 
-export const MovieSectionWrapper = (props: { type: ListType, keyword?: string, closeTitle?: boolean }) => {
+export const MovieSectionWrapper = (props: { type: MovieListType, keyword?: string, closeTitle?: boolean }) => {
     return (
         <div style={{marginTop: '64px'}}>
             <MovieSection type={props.type} keyword={props.keyword} closeTitle={props.closeTitle}/>

@@ -1,15 +1,19 @@
-import express, {Express, Request, Response} from 'express';
+import express, {Express} from 'express';
 import cors from 'cors';
 import {Config} from "./config";
 import path from "node:path";
-import os from "node:os";
 import {DB} from "./db";
 import {ShtService} from "./services/sht";
-import {isUndefinedOrNull} from "./common/types";
+import {MovieService} from "./services/movie";
+import {TorrentService} from "./services/torrent";
+import {JavlibProvider} from "./services/provider/javlib";
+import {JavbusProvider} from "./services/provider/javbus";
+import {Manko} from "./services/provider/manko";
+import {SyncService} from "./services/sync";
+import {ShtProvider} from "./services/provider/sht";
+import {BrowserService} from "./services/provider/browser";
 
-const app = express();
-const PORT = process.env.PORT || 3123;
-
+const PORT = process.env["PORT"] || 3123;
 
 class Server {
     constructor() {
@@ -18,12 +22,24 @@ class Server {
     async start(): Promise<void> {
         const config = this.initConfig();
         const db = new DB(config.dbpath);
+        const libdb = new DB(config.libDbPath)
         const shtService = new ShtService(db);
+        const movieService = new MovieService(libdb);
+        const torrentService = new TorrentService(libdb);
+
+        const browserService = new BrowserService();
+        const javlib = new JavlibProvider(config);
+        const javbus = new JavbusProvider(config);
+        const manko = new Manko(config);
+        const shtProvider = new ShtProvider(browserService, config);
+        const syncService = new SyncService(shtProvider, javlib, manko, javbus,
+            movieService, shtService, torrentService);
 
         const app = express();
         app.use(cors())
+        app.use(express.json());
 
-        this.initRoutes(app, shtService)
+        this.initRoutes(app, shtService, movieService, torrentService, syncService)
 
         app.on('close', () => {
             db.dispose()
@@ -34,27 +50,12 @@ class Server {
         });
     }
 
-    private initRoutes(app: Express, shtService: ShtService): void {
-        app.get('/api/threads/search', async (req: Request, res: Response) => {
-            const {
-                title, pageNo = '1', pageSize = '20', form, sn
-            } = req.query;
-
-            const result = await shtService.search({
-                title: this.mapToString(title),
-                pageNo: parseInt(this.mapToString(pageNo) || '1'),
-                pageSize: parseInt(this.mapToString(pageSize) || '20'),
-                form: parseInt(this.mapToString(form) || '0'),
-                sn: this.mapToString(sn),
-            });
-
-            res.json({
-                success: true,
-                data: result.threads,
-                total: result.total
-            });
-        });
-
+    private initRoutes(app: Express, shtService: ShtService, movieService: MovieService, torrentService: TorrentService,
+                       syncService: SyncService): void {
+        this.registerRoute(app, 'thread', shtService, ['createOrUpdate'])
+        this.registerRoute(app, 'movie', movieService)
+        this.registerRoute(app, 'torrent', torrentService, ['saveTorrent'])
+        this.registerRoute(app, 'sync', syncService, ['syncSht']);
 
         const staticPath = path.resolve(__dirname, '../dist/static');
         app.use(express.static(staticPath));
@@ -64,24 +65,29 @@ class Server {
         });
     }
 
-    private mapToString(source: any): string | undefined {
-        if(isUndefinedOrNull(source)) {
-            return undefined;
-        }
-        if(typeof source === 'string') {
-            return source;
-        }
-        return source.toString();
+    private initConfig(): Config {
+        return Config.defaultConfig();
     }
 
-    private initConfig(): Config {
-        return new Config(
-            path.join(os.homedir(), '.jslib/index.db'),
-            false,
-            'https://espa.3n852.net/',
-            false,
-            "https://quickmessenger.org"
-        );
+    private registerRoute(app: Express, bathPath: string, service: any,
+                          exclude?: string[]): void {
+        const apiKeys = Object.getOwnPropertyNames(Object.getPrototypeOf(service));
+        for (const key of apiKeys) {
+            if (typeof service[key] === 'function'
+                && (!exclude || exclude.indexOf(key) === -1)
+                && key !== 'constructor'
+                && !key.startsWith("_")) {
+                const fullPath = `/api/${bathPath}/${key}`.replace(/\/+/g, '/');
+                app.post(fullPath, async (req, res) => {
+                    try {
+                        const result = await service[key](req.body);
+                        res.json({success: true, data: result});
+                    } catch (e: any) {
+                        res.json({success: false, error: e.message});
+                    }
+                })
+            }
+        }
     }
 }
 

@@ -1,5 +1,4 @@
 
-
 export const InitShtSQL = `
 CREATE TABLE sht_form IF NOT EXISTS  (
     thread_id INTEGER PRIMARY KEY,

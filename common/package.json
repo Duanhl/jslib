@@ -1,0 +1,7 @@
+{
+  "name": "@jslib/common",
+  "version": "1.0.0",
+  "types": "src/index.ts",
+  "private": true,
+  "type": "module"
+}

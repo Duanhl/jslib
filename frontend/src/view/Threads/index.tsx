@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Input, Card, List, Pagination, Empty } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import React, {useState, useEffect} from 'react';
+import {Input, Card, List, Pagination, Empty} from 'antd';
+import {SearchOutlined} from '@ant-design/icons';
 import './index.css';
-import {searchThread, Thread} from "../../api/api.ts";
+import {Thread} from "@jslib/common";
+import {threadService} from "../../common/proxy.ts";
 
 interface SearchResult {
     threads: Thread[];
@@ -14,13 +15,15 @@ const SearchPage: React.FC = () => {
     const [pageNo, setPageNo] = useState(1);
     const [pageSize] = useState(20);
     const [loading, setLoading] = useState(false);
-    const [data, setData] = useState<SearchResult>({ threads: [], total: 0 });
+    const [data, setData] = useState<SearchResult>({threads: [], total: 0});
 
     // 拉取数据
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await searchThread(title, pageNo, pageSize);
+            const res = await threadService.search({
+                title, pageNo, pageSize
+            });
             setData(res);
         } finally {
             setLoading(false);
@@ -40,7 +43,7 @@ const SearchPage: React.FC = () => {
                     <Input
                         size="large"
                         placeholder="输入关键词搜索帖子"
-                        prefix={<SearchOutlined />}
+                        prefix={<SearchOutlined/>}
                         value={title}
                         onChange={(e) => {
                             setTitle(e.target.value);
@@ -57,7 +60,7 @@ const SearchPage: React.FC = () => {
                     itemLayout="horizontal"
                     loading={loading}
                     dataSource={data.threads}
-                    locale={{ emptyText: <Empty description="暂无结果" /> }}
+                    locale={{emptyText: <Empty description="暂无结果"/>}}
                     renderItem={(item) => (
                         <List.Item
                             key={item.threadId}

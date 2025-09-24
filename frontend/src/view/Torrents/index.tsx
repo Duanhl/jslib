@@ -2,11 +2,12 @@ import {Button, Col, DatePicker, Row, Space} from "antd";
 import dayjs, {Dayjs} from "dayjs";
 import {useEffect, useState} from "react";
 import {MovieCard} from "../MovieSection";
-import {listTorrents, Movie, Torrent} from "../../api/api.ts";
 import {useNavigate, useSearchParams} from "react-router-dom";
 import {formatDate} from "../../common/date.ts";
 import type {DatePickerProps} from "antd/es/date-picker";
 import "./index.css"
+import {Movie, Torrent} from "@jslib/common";
+import {torrentService} from "../../common/proxy.ts";
 
 
 const HighTorrents = () => {
@@ -21,7 +22,7 @@ const HighTorrents = () => {
 
     useEffect(() => {
         (async () => {
-            const torrents = (await listTorrents({keyword: date})).data;
+            const torrents = (await torrentService.listHighCh({keyword: date}));
             setTorrents(torrents);
         })();
     }, [date]);

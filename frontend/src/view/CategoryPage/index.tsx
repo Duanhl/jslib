@@ -2,14 +2,14 @@ import {Radio, Space} from 'antd';
 import './index.css';
 import MovieSection from "../MovieSection";
 import {useNavigate, useParams} from "react-router-dom";
-import {ListType} from "../../api/api.ts";
 import {GENRES, SERIES} from "../../common/utils.ts";
+import {MovieListType} from "@jslib/common";
 
 const CategoryPage = () => {
     const { series, genre } = useParams();
-    const type: ListType = series ?  "series" : "tag";
+    const type: MovieListType = series ?  "series" : "genre";
     const navigate = useNavigate();
-    const onChange = (value: string, type: ListType) => {
+    const onChange = (value: string, type: MovieListType) => {
         if(type === 'series') {
             navigate(`/series/${value}`);
         } else {
@@ -17,7 +17,7 @@ const CategoryPage = () => {
         }
     }
 
-    const renderFilter = (title: string, items: string[], type: ListType, value: string) => (
+    const renderFilter = (title: string, items: string[], type: MovieListType, value: string) => (
         <div className="filter-row">
             <div className="filter-label">{title}:</div>
             <Radio.Group value={value} onChange={e => onChange(e.target.value, type)}>
@@ -41,7 +41,7 @@ const CategoryPage = () => {
 
             <div className="filter-section">
                 <div className="filter-container">
-                    {renderFilter('标签', GENRES, 'tag', (type === 'tag') ? keyword! : '')}
+                    {renderFilter('标签', GENRES, 'genre', (type === 'genre') ? keyword! : '')}
                     {renderFilter('系列', SERIES, 'series', (type === 'series') ? keyword! : '')}
                 </div>
             </div>

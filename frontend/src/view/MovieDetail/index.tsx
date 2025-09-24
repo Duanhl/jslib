@@ -11,10 +11,12 @@ import {
 import Comments from '../Comments';
 import './index.css';
 import VideoPlayer from '../VideoPlayer';
-import {colMovie, Movie, movieDetails, syncMovie, unColMovie} from "../../api/api.ts";
+import {colMovie, unColMovie} from "../../api/api.ts";
 import {useLocation, useNavigate, useParams} from "react-router-dom";
 import {isUndefinedOrNull} from "../../common/types.ts";
 import {getDmmThumbURL} from "../../common/utils.ts";
+import {movieService, syncService} from "../../common/proxy.ts";
+import {Movie} from "@jslib/common";
 
 const {Title, Text} = Typography;
 
@@ -29,22 +31,24 @@ const MovieDetail = () => {
     useEffect(() => {
         (async () => {
             if (sn) {
-                let movie = await movieDetails(sn);
-                if (isUndefinedOrNull(movie)) {
-                    if (local) {
-                        // @ts-ignore
-                        movie = ({
-                            sn: video.sn!,
-                            coverUrl: "",
-                            title: video.fileName!,
-                            comments: [],
-                            previewImages: [],
-                            torrents: [],
-                            location: video.fileName!,
-                        }) as Movie
-                    } else {
-                        await syncMovie(sn);
-                        movie = await movieDetails(sn);
+                let movie = {} as Movie;
+                try {
+                    movie = await movieService.details({sn});
+                } catch (e: any) {
+                    if(e.message.indexOf('Movie not found') !== -1) {
+                        if (local) {
+                            movie = ({
+                                sn: video.sn!,
+                                coverUrl: "",
+                                title: video.fileName!,
+                                comments: [],
+                                previewImages: [],
+                                torrents: [],
+                                location: video.fileName!,
+                            }) as Movie
+                        } else {
+                            movie = await syncService.syncMovie({sn});
+                        }
                     }
                 }
                 setMovie(movie);
@@ -54,8 +58,7 @@ const MovieDetail = () => {
 
     const reload = async () => {
         if (movie?.sn) {
-            await syncMovie(movie?.sn);
-            const movieInfo = await movieDetails(movie?.sn);
+            const movieInfo = await syncService.syncMovie({sn: movie?.sn});
             setMovie(movieInfo);
         }
     };
@@ -63,7 +66,7 @@ const MovieDetail = () => {
     const onColMovie = async () => {
         if (movie?.sn) {
             await colMovie(movie?.sn);
-            const movieInfo = await movieDetails(movie?.sn);
+            const movieInfo = await movieService.details({sn: movie?.sn});
             setMovie(movieInfo);
         }
     }
@@ -71,7 +74,7 @@ const MovieDetail = () => {
     const onUnColMovie = async () => {
         if (movie?.sn) {
             await unColMovie(movie?.sn);
-            const movieInfo = await movieDetails(movie?.sn);
+            const movieInfo = await movieService.details({sn: movie?.sn});
             setMovie(movieInfo);
         }
     }
@@ -216,7 +219,7 @@ const MovieDetail = () => {
                                 <div>
                                     <Title level={5}>下载地址</Title>
                                     <Row gutter={[10, 10]}>
-                                        {movie.torrents.map((torrent, index) => (
+                                        {movie.torrents?.map((torrent, index) => (
                                             <Col span={4} key={index}>
                                                 <Card className="download-card"
                                                       onClick={() => onClickCopy(torrent.magnet)}>
@@ -236,7 +239,7 @@ const MovieDetail = () => {
                         </Card>
 
                         <Card className="section-card" title={"评论"}>
-                            <Comments comments={movie.comments}/>
+                            <Comments comments={movie.comments!}/>
                         </Card>
                     </div>
 
@@ -246,7 +249,7 @@ const MovieDetail = () => {
                                 <VideoPlayer
                                     sn={sn!}
                                     title={movie.title}
-                                    cover={movie.coverUrl}
+                                    cover={movie.coverUrl!}
                                 />
                             </div>
                             <div className="player-modal-close" onClick={() => setShowPlayer(false)}>

@@ -1,0 +1,31 @@
+import {RankMovie } from "../types";
+import {ActorInfo, Movie, Thread} from "@jslib/common";
+
+export interface FetchOptions<T> {
+    save?: (t: T) => void | Promise<void>;
+    needNextLevel?: (t: T) => boolean;
+}
+
+export type RankType = 'bestRated' | 'mostWanted' | 'popular';
+
+export interface IProvider {
+
+    /* normal */
+    fetchMovie?(keyword: string): Promise<Movie | undefined>;
+
+    fetchActor?(keyword: string, options: FetchOptions<Movie>): Promise<{
+        actor?: ActorInfo,
+        movies: Movie[]
+    }>
+
+    /* form class */
+    fetchThreads?(form: string | number,
+                  start?: number,
+                  end?: number,
+                  options?: FetchOptions<Thread>): Promise<Thread[]>;
+
+    fetchThread?(url: string, form: string | number): Promise<Thread | undefined>;
+
+    /* rank class */
+    fetchRankMovie?(type: RankType, options: FetchOptions<Movie>): Promise<RankMovie[]>;
+}

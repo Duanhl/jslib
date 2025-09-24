@@ -66,8 +66,8 @@ export function getDmmThumbURL(sn: string, cover?: string) {
   }
 }
 
-export function round(d: number, r: number = 1): string {
-  return d.toFixed(r)
+export function round(d?: number, r: number = 1): string {
+  return d ? d.toFixed(r) : '0';
 }
 
 function stringHashMod(str: string) {

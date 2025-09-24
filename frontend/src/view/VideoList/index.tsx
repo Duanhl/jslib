@@ -3,7 +3,8 @@ import {Col, Input, Pagination, Row, Space} from 'antd';
 import './index.css';
 import {MovieCard} from "../MovieSection";
 import {useNavigate, useSearchParams} from "react-router-dom";
-import {listLocalVideo, Movie, Video} from "../../api/api.ts";
+import {Movie, Video} from "@jslib/common";
+import {movieService} from "../../common/proxy.ts";
 
 const { Search } = Input;
 
@@ -25,7 +26,7 @@ const VideoList = () => {
 
     useEffect(() => {
         (async () => {
-            const res = await listLocalVideo({keyword: name, page, pageSize});
+            const res = await movieService.listVideos({name, page, pageSize});
             setVideos(res.data)
             setTotal(res.total!);
         })()

@@ -1,116 +1,162 @@
-import {Database } from "sqlite3";
-import {sleep} from "../utils";
+import Database, {Statement} from "better-sqlite3";
+import {toCamel} from "../common/utils";
 
 
 export class DB {
 
-    private readonly whenConnected = this.connect(true);
+    private readonly db: Database.Database;
+    private preparedStatements: Map<string, Statement> = new Map();
 
     constructor(private readonly dbPath: string,
-                private readonly isTracing: boolean = false) {
-    }
-
-    async get(sql: string, params: any): Promise<any[]> {
-        const db = await this.whenConnected;
-        const stmt = db.prepare(sql, params);
-
-        return new Promise((resolve, reject) => {
-            stmt.all((err: Error | null, rows: any[]) => {
-                if(err) {
-                    this.handleSQLiteError(`[db get(): ${err}`);
-                    return reject(err);
-                }
-
-                return resolve(rows);
-            })
-        });
-    }
-
-    async run(sql: string, params?: any): Promise<void> {
-        const db = await this.whenConnected;
-
-
-        return new Promise((resolve, reject) => {
-            try {
-                const stmt = db.prepare(sql);
-                stmt.run(params, (error: Error | null) => {
-                    if (error) {
-                        this.handleSQLiteError(`[db exec(): ${error}`);
-                        return reject(error);
-                    }
-                    return resolve();
-                });
-            } catch (error) {
-                return reject(error);
-            }
-        });
-    }
-
-    async transaction(transactions: () => void): Promise<void> {
-        const db = await this.whenConnected;
-
-        return new Promise((resolve, reject) => {
-            db.serialize(() => {
-                db.run('BEGIN TRANSACTION');
-
-                transactions();
-
-                db.run('END TRANSACTION', error => {
-                    if (error) {
-                        this.handleSQLiteError(`[db transaction(): ${error}`);
-
-                        return reject(error);
-                    }
-
-                    return resolve();
-                });
-            });
-        });
-    }
-
-    async dispose(): Promise<void> {
-        const db = await this.whenConnected;
-        db.close();
-    }
-
-
-    private async connect(retryOnBusy: boolean): Promise<Database> {
+                isDbTracing: boolean = false) {
         try {
-            return this.doConnect(this.dbPath)
-        } catch (error: any) {
-            console.error(`[storage ${this.dbPath}] open(): Unable to open DB due to ${error}`);
+            this.db = new Database(this.dbPath, {
+                verbose: isDbTracing ? console.log : undefined,
+                fileMustExist: false,
+                timeout: 5000
+            });
 
-            if(error.code === 'SQLITE_BUSY' && retryOnBusy) {
-                await sleep(2000);
-
-                return this.connect(false);
-            }
-
+            console.log(`db connection successfully in ${this.dbPath}`);
+        } catch (error) {
+            console.error(`db connection error: ${error}`);
             throw error;
         }
     }
 
-    private async doConnect(path: string): Promise<Database> {
-        return new Promise((resolve, reject) => {
-            import('sqlite3').then((sqlite3) => {
-                const db: Database = new (this.isTracing ? sqlite3.verbose() : sqlite3).Database(path, (err: Error | null) =>{
-                    if(err) {
-                        return db ? db.close(() => reject(err)) : reject(err);
-                    }
-                    return resolve(db);
-                });
+    private prepareStatement(sql: string): Statement {
+        const cached = this.preparedStatements.get(sql);
+        if (cached) {
+            return cached;
+        }
 
-                db.on('error', err => {this.handleSQLiteError(`[db init error (event): ${err}`)});
-
-                if(this.isTracing) {
-                    db.on('trace', (sql: string) => console.trace(`[db trace (event): ${sql}`));
-                }
-            }, reject)
-        });
+        try {
+            const statement = this.db.prepare(sql);
+            this.preparedStatements.set(sql, statement);
+            return statement;
+        } catch (error) {
+            console.error(`prepareStatement error: ${error}`);
+            throw error;
+        }
     }
 
-    private handleSQLiteError(msg: string): void {
-        console.error(msg);
+    query<T = any>(sql: string, namedParams?: Record<string, any>): T[] {
+        try {
+            const statement = this.prepareStatement(sql);
+
+            if (namedParams) {
+                return statement.all(namedParams).map(obj => toCamel(obj as any)) as T[];
+            }
+            return statement.all([]) as T[];
+        } catch (error) {
+            console.error(`query error: ${error}`);
+            throw error;
+        }
+    }
+
+    execute(sql: string, namedParams?: Record<string, any>): number {
+        try {
+            const statement = this.prepareStatement(sql);
+
+            let result: Database.RunResult;
+            if (namedParams) {
+                result = statement.run(namedParams);
+            } else {
+                result = statement.run([]);
+            }
+
+            return result.changes;
+        } catch (error) {
+            console.error(`execute error: ${error}`);
+            throw error;
+        }
+    }
+
+    transaction(callback: () => void): void {
+        try {
+            this.db.transaction(callback)();
+        } catch (error) {
+            console.error(`createTransaction error: ${error}`);
+            throw error;
+        }
+    }
+
+    async dispose(): Promise<void> {
+        this.preparedStatements.clear();
+        this.db.close();
+    }
+
+    createOrUpdate(
+        tableName: string,
+        obj: Record<string, any>,
+        key: string
+    ): 'inserted' | 'updated' {
+        /* 1. 驼峰 -> 下划线 */
+        const entry = Object.entries(obj).reduce<Record<string, any>>((acc, [k, v]) => {
+            const under = k.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
+            acc[under] = v;
+            return acc;
+        }, {});
+
+        const keyUnder = key.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
+
+        /* 2. 过滤空值，用于更新阶段 */
+        const toUpdate = Object.entries(entry)
+            .filter(([, v]) => v !== null && v !== undefined && v !== '')
+            .reduce<Record<string, any>>((acc, [k, v]) => {
+                acc[k] = v;
+                return acc;
+            }, {});
+
+        if (Object.keys(toUpdate).length === 0) {
+            throw new Error('No valid column to update');
+        }
+
+        /* 3. 查询唯一键是否存在 */
+        const existStmt = `SELECT 1
+                           FROM ${tableName}
+                           WHERE ${keyUnder} = @${keyUnder} LIMIT 1`;
+        const exists = this.query(existStmt, {[keyUnder]: entry[keyUnder]}).length > 0;
+
+        if (exists) {
+            /* 4. 更新 */
+            const setClause = Object.keys(toUpdate)
+                .map(col => `${col} = @${col}`)
+                .join(', ');
+            const updateSql = `UPDATE ${tableName}
+                               SET ${setClause}
+                               WHERE ${keyUnder} = @${keyUnder}`;
+            this.execute(updateSql, {...toUpdate, [keyUnder]: entry[keyUnder]});
+            return 'updated';
+        } else {
+            /* 5. 插入 */
+            const cols = Object.keys(entry);
+            const placeholders = cols.map(c => `@${c}`).join(', ');
+            const insertSql = `INSERT INTO ${tableName} (${cols.join(', ')})
+                               VALUES (${placeholders})`;
+            this.execute(insertSql, entry);
+            return 'inserted';
+        }
+    }
+
+    create(tableName: string,
+           obj: Record<string, any>) {
+        const entry = Object.entries(obj).reduce<Record<string, any>>((acc, [k, v]) => {
+            if(v) {
+                const under = k.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
+                if(v instanceof Array) {
+                    acc[under] = JSON.stringify(v);
+                } else {
+                    acc[under] = v;
+                }
+            }
+            return acc;
+        }, {});
+
+        const cols = Object.keys(entry);
+        const placeholders = cols.map(c => `@${c}`).join(', ');
+        const insertSql = `INSERT INTO ${tableName} (${cols.join(', ')})
+                           VALUES (${placeholders})`;
+        this.execute(insertSql, entry);
     }
 
 }
