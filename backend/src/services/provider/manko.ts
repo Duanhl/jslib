@@ -12,6 +12,7 @@ interface MankoMovie {
     rating: string;
     genre?: string[];
     imdb_score?: string
+    thumbnail_image?: string;
 }
 
 interface MankoActor {
@@ -146,8 +147,9 @@ export class Manko implements IProvider {
             sn: manko.title,
             title: manko.title,
             releaseDate: manko.share_date,
-            score: manko.imdb_score,
-            rankType: type
+            type: type,
+            provider: 'manko',
+            thumbUrl: manko.thumbnail_image
         }
     }
 
@@ -170,15 +172,6 @@ export class Manko implements IProvider {
             return undefined;
         }
 
-        const findDescription = (descriptions: { language: string; overview: string }[]) => {
-            for (const title of descriptions) {
-                if (title.language === 'jp') {
-                    return title.overview;
-                }
-            }
-            return undefined;
-        }
-
         const transferTorrent = (mt: MankoTorrent): Torrent => {
             return {
                 sn,
@@ -188,10 +181,17 @@ export class Manko implements IProvider {
             }
         }
 
+        const doubleScore = (score: string): string | undefined => {
+            try {
+                return 2 * parseFloat(score) + '';
+            } catch (e) {
+                return undefined;
+            }
+        }
+
         return {
             sn: findTitle(manko.title_display_name) || sn,
-            title: findDescription(manko.discription)!,
-            score: manko.imdb_score,
+            score: doubleScore(manko.imdb_score),
             players: [...manko.njav_player, ...manko.upload18_player],
             duration: manko.video_duration.toString(),
             publisher: manko.country,
@@ -199,6 +199,7 @@ export class Manko implements IProvider {
             torrents: [transferTorrent(manko.torrent_url_2)],
             previewImages: manko.backdrop_images,
             coverUrl: manko.cover_image,
+            comments: []
         }
     }
 }

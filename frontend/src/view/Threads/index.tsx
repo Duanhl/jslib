@@ -1,9 +1,9 @@
 import React, {useState, useEffect} from 'react';
-import {Input, Card, List, Pagination, Empty} from 'antd';
-import {SearchOutlined} from '@ant-design/icons';
+import {List, Pagination, Empty} from 'antd';
 import './index.css';
 import {Thread} from "@jslib/common";
 import {threadService} from "../../common/proxy.ts";
+import {useSearchParams} from "react-router-dom";
 
 interface SearchResult {
     threads: Thread[];
@@ -11,50 +11,33 @@ interface SearchResult {
 }
 
 const SearchPage: React.FC = () => {
-    const [title, setTitle] = useState('');
     const [pageNo, setPageNo] = useState(1);
-    const [pageSize] = useState(20);
+    const [pageSize] = useState(18);
     const [loading, setLoading] = useState(false);
     const [data, setData] = useState<SearchResult>({threads: [], total: 0});
 
-    // 拉取数据
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const res = await threadService.search({
-                title, pageNo, pageSize
-            });
-            setData(res);
-        } finally {
-            setLoading(false);
-        }
-    };
+    let title: string = '';
+    const [params] = useSearchParams();
+    if (params.has('title')) {
+        title = params.get('title') || ''
+    }
 
     useEffect(() => {
-        const timer = setTimeout(() => fetchData(), 1000); // 简单防抖
-        return () => clearTimeout(timer);
+        (async () => {
+            setLoading(true);
+            try {
+                const res = await threadService.search({
+                    title: title || '', pageNo, pageSize
+                });
+                setData(res);
+            } finally {
+                setLoading(false);
+            }
+        })()
     }, [title, pageNo]);
 
     return (
         <div className="search-page">
-            {/* 顶部搜索区 */}
-            <div className="search-head">
-                <Card className="search-card">
-                    <Input
-                        size="large"
-                        placeholder="输入关键词搜索帖子"
-                        prefix={<SearchOutlined/>}
-                        value={title}
-                        onChange={(e) => {
-                            setTitle(e.target.value);
-                            setPageNo(1); // 关键词变化回到第一页
-                        }}
-                        allowClear
-                    />
-                </Card>
-            </div>
-
-            {/* 结果区 */}
             <div className="search-body">
                 <List
                     itemLayout="horizontal"

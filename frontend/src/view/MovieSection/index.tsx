@@ -10,20 +10,20 @@ import {movieService} from "../../common/proxy.ts";
 
 const {Title} = Typography;
 
-export const MovieCard = (props: { movie: Movie, magnet?: string, video?: Video}) => {
+export const MovieCard = (props: { movie: Movie, magnet?: string, video?: Video }) => {
     const {movie, magnet, video} = props;
 
     const cover = getDmmThumbURL(movie.sn, movie.coverUrl);
+    const jvn = extractStandardJavSn(movie.sn)
 
-    const onClickCopy = async (e: any) => {
+    const onContextClick = async (e) => {
+        e.preventDefault();
+
         if (magnet) {
-            e.preventDefault();
             await navigator.clipboard.writeText(magnet + "\n");
             message.info('复制磁力链接成功');
         }
-    };
-
-    const jvn = extractStandardJavSn(movie.sn)
+    }
 
     const renderItem = () => {
         return (
@@ -42,7 +42,7 @@ export const MovieCard = (props: { movie: Movie, magnet?: string, video?: Video}
                     </div>
                 }
                 className={"movie-card"}
-                onContextMenu={(e) => onClickCopy(e)}
+                onContextMenu={(e) => onContextClick(e)}
             >
                 <Space direction="vertical">
                     {
@@ -55,14 +55,14 @@ export const MovieCard = (props: { movie: Movie, magnet?: string, video?: Video}
     }
 
     const renderLink = () => {
-        if(!isUndefinedOrNull(video)) {
+        if (!isUndefinedOrNull(video)) {
             return (
                 (<Link to={`/movie/${movie.sn}`} state={{local: true, video}} className={"movie-link"}>
                     {renderItem()}
                 </Link>)
             )
         } else {
-            if(jvn.isJavSn) {
+            if (jvn.isJavSn) {
                 return (<Link to={`/movie/${movie.sn}`} className={"movie-link"}>
                     {renderItem()}
                 </Link>)
@@ -105,7 +105,7 @@ const MovieSection = (props: { type: MovieListType, keyword?: string, closeTitle
         const type = props.type;
         switch (type) {
             case 'popular':
-                pageResult = await movieService.list({keyword: '', type, pageSize: 20});
+                pageResult = await movieService.list({keyword: '', type, page, pageSize});
                 break;
             case 'wanted':
             case 'bestrated':
@@ -148,6 +148,7 @@ const MovieSection = (props: { type: MovieListType, keyword?: string, closeTitle
                 break;
             case "popular":
                 // do nothing
+                navigate(`/?pageNo=${page}`);
                 break;
         }
     };

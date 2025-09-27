@@ -20,7 +20,7 @@ export interface IThreadService {
 
 export interface Movie {
     sn: string;
-    title: string;
+    title?: string;
     actors?: string[];
     director?: string;
     duration?: string;
@@ -79,6 +79,12 @@ export interface IMovieService {
     }>;
 
     listVideos(args: { name?: string, page?: number, pageSize?: number }): Promise<{ data: Video[], total: number }>
+
+    delMovie(args: { sn: string }): Promise<void>;
+
+    colMovie(args: {sn: string}): Promise<void>;
+
+    unColMovie(args: {sn: string}): Promise<void>;
 }
 
 export interface ActorInfo {
@@ -119,6 +125,6 @@ export interface ISyncService {
 
     syncMovie(args: { sn: string }): Promise<Movie>;
 
-    asyncStar(args: { name: string }): Promise<void>;
+    syncStar(args: { name: string }): Promise<Movie[] | string>;
 }
 

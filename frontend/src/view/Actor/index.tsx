@@ -4,19 +4,18 @@ import {Button, message, Popconfirm, Space, Typography} from 'antd';
 import {SyncOutlined} from '@ant-design/icons';
 import './index.css';
 import MovieSection from "../MovieSection";
-import {syncMovieByStar} from "../../api/api.ts";
 import {ActorInfo} from "@jslib/common";
-import {movieService} from "../../common/proxy.ts";
+import {movieService, syncService} from "../../common/proxy.ts";
 
-const { Title, Text } = Typography;
+const {Title, Text} = Typography;
 
 const Actor = () => {
-    const { name } = useParams();
+    const {name} = useParams();
     const [actor, setActor] = useState<ActorInfo | undefined>(undefined);
 
     useEffect(() => {
         (async () => {
-            if(name) {
+            if (name) {
                 const res = await movieService.actor({name});
                 setActor(res);
             }
@@ -24,8 +23,8 @@ const Actor = () => {
     }, [name]);
 
     const onConfirm = async () => {
-        const msg = await syncMovieByStar(name as string);
-        message.warning(msg);
+        const msg = await syncService.syncStar({name: (name as unknown) as string});
+        message.warning(msg as string);
     };
 
     return (
@@ -71,7 +70,7 @@ const Actor = () => {
 
             <div className="creator-content">
                 <div className="content-wrapper">
-                    <MovieSection type={'actress'} keyword={name} closeTitle={true} />
+                    <MovieSection type={'actress'} keyword={name} closeTitle={true}/>
                 </div>
             </div>
         </div>

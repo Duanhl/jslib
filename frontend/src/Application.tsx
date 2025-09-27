@@ -5,7 +5,7 @@ import {HashRouter as Router, Route, Routes} from 'react-router-dom';
 import {ConfigProvider, notification, theme} from 'antd';
 import 'antd/dist/reset.css';
 import Navbar from "./view/NavBar";
-import {MovieSectionWrapper} from "./view/MovieSection";
+import MovieSection, {MovieSectionWrapper} from "./view/MovieSection";
 import CategoryPage from "./view/CategoryPage";
 import Settings from "./view/Settings";
 import MovieDetail from "./view/MovieDetail";
@@ -14,6 +14,7 @@ import ActorList from "./view/ActorList";
 import HighTorrents from "./view/Torrents";
 import VideoList from "./view/VideoList";
 import Threads from "./view/Threads";
+import CategoryTabs from "./view/CategoryTabs";
 
 dayjs.locale('zh-cn');
 
@@ -70,15 +71,16 @@ const Application: React.FC = () => {
                 <main>
                     <Routes>
                         <Route path="/" element={
-                            // <>
-                            //     <CategoryTabs/>
-                            //     <MovieSection type="popular"/>
-                            // </>
-                            <Threads />
+                            <>
+                                <CategoryTabs/>
+                                <MovieSection type="popular"/>
+                            </>
+
                         }/>
                         <Route path={'/mostwanted'} element={<MovieSectionWrapper type="wanted"/>}/>
                         <Route path={'/bestrate'} element={<MovieSectionWrapper type={'bestrated'}/>}/>
                         <Route path={'/cols'} element={<MovieSectionWrapper type={'col'}/>}/>
+                        <Route path={'/threads'} element={<Threads />}/>
 
                         <Route path="/movie/:sn" element={<MovieDetail/>}/>
                         <Route path={'/actor/:name'} element={<Actor/>}/>

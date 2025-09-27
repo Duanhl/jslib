@@ -57,4 +57,20 @@ describe('Sync Form', () => {
         })
     })
 
+    describe('sync rank movie', () => {
+        it('popular', async () => {
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            const releaseDate = yesterday.toISOString().split('T')[0]
+            const result = await syncService.syncRank('popular', releaseDate);
+            console.log(result);
+        })
+    })
+
+    describe('sync star', () => {
+        it('sync star', async () => {
+            const movies = await syncService.syncStar({name: 'メロディー・雛・マークス'}, true);
+            console.log(movies);
+        })
+    })
+
 })

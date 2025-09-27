@@ -12,6 +12,7 @@ import {Manko} from "./services/provider/manko";
 import {SyncService} from "./services/sync";
 import {ShtProvider} from "./services/provider/sht";
 import {BrowserService} from "./services/provider/browser";
+import * as fs from "node:fs";
 
 const PORT = process.env["PORT"] || 3123;
 
@@ -44,6 +45,9 @@ class Server {
         app.on('close', () => {
             db.dispose()
         });
+        app.on('error', (err) => {
+            console.log(err);
+        })
 
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`)
@@ -53,10 +57,11 @@ class Server {
     private initRoutes(app: Express, shtService: ShtService, movieService: MovieService, torrentService: TorrentService,
                        syncService: SyncService): void {
         this.registerRoute(app, 'thread', shtService, ['createOrUpdate'])
-        this.registerRoute(app, 'movie', movieService)
+        this.registerRoute(app, 'movie', movieService, ['videoDetails'])
         this.registerRoute(app, 'torrent', torrentService, ['saveTorrent'])
         this.registerRoute(app, 'sync', syncService, ['syncSht']);
 
+        this.videoHandler(app, movieService);
         const staticPath = path.resolve(__dirname, '../dist/static');
         app.use(express.static(staticPath));
 
@@ -67,6 +72,53 @@ class Server {
 
     private initConfig(): Config {
         return Config.defaultConfig();
+    }
+
+    private videoHandler(app: Express, movieService: MovieService): void {
+        app.get('/video', async (req, res) => {
+            try {
+                let {sn} = req.query;
+                sn = sn as string;
+                const video = await movieService.videoDetails(sn);
+                if (!video) {
+                    res.json({success: false, message: 'You must specify a location!'});
+                    return;
+                }
+                if (!fs.existsSync(video.filePath)) {
+                    throw new Error('file does not exist');
+                }
+                res.setHeader('Content-Typ', video.mime);
+                res.setHeader('Accept-Ranges', 'bytes');
+
+                const fileSize = parseInt(video.size);
+                const range = req.headers.range;
+                if (range) {
+                    const parts = range.replace(/bytes=/, "").split("-");
+                    const start = parseInt(parts[0], 10);
+                    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+                    const chunksize = (end - start) + 1;
+
+                    res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+                    res.setHeader('Content-Length', chunksize.toString());
+                    res.status(206); // Partial Content
+
+                    const fileStream = fs.createReadStream(video.filePath, {start, end});
+                    fileStream.pipe(res);
+                } else {
+                    res.setHeader('Content-Length', fileSize.toString());
+                    res.status(200);
+
+                    const fileStream = fs.createReadStream(video.filePath);
+                    fileStream.pipe(res);
+                }
+            } catch (error) {
+                console.error('Video handler error:', error);
+                res.json({
+                    success: false,
+                    message: 'Internal server error'
+                });
+            }
+        })
     }
 
     private registerRoute(app: Express, bathPath: string, service: any,

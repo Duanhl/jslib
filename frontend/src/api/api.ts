@@ -1,11 +1,4 @@
 import {EventMsg} from "@jslib/common";
-
-
-export interface PageOptions {
-    page?: number;
-    pageSize?: number;
-    total?: number;
-}
 export interface Response<T> {
     success: boolean;
     data: T;
@@ -14,16 +7,6 @@ export interface Response<T> {
 }
 export async function delMovie(sn: string): Promise<boolean> {
     const response = await doRequest(`/api/delmovie/${sn}`, {});
-    return response.success;
-}
-
-export async function colMovie(sn: string): Promise<boolean> {
-    const response = await doRequest(`/api/colmovie/${sn}`, {});
-    return response.success;
-}
-
-export async function unColMovie(sn: string): Promise<boolean> {
-    const response = await doRequest(`/api/uncolmovie/${sn}`, {});
     return response.success;
 }
 

@@ -10,7 +10,7 @@ const VideoPlayer = (props: { sn: string, cover: string, title: string }) => {
     useEffect(() => {
         const art = new Artplayer({
             container: artRef.current!,
-            url: `http://localhost:7777/video?sn=${sn}`,
+            url: `http://localhost:3123/video?sn=${sn}`,
             poster: cover,
             volume: 0.7,
             isLive: false,

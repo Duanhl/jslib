@@ -1,9 +1,10 @@
 import {IMovieService, Movie, Torrent, Video, Comment, MovieListType, ActorInfo} from "@jslib/common";
 import {DB} from "../db";
+import {RankMovie} from "./types";
 
 export function formatterDate(date?: Date) {
     if (!date) {
-        date = new Date();
+        date = new Date(Date.now() - 24 * 60 * 60 * 1000);
     }
     return date.toISOString().split('T')[0];
 }
@@ -17,6 +18,37 @@ interface ActorMovie {
 export class MovieService implements IMovieService {
 
     constructor(private readonly db: DB) {
+    }
+
+    async delMovie(args: { sn: string; }): Promise<void> {
+        this.db.transaction(() => {
+            const {sn} = args;
+            this.db.execute(`delete
+                             from movies
+                             where sn = :sn`, {sn});
+            this.db.execute(`delete
+                             from actor_movie_relation
+                             where sn = :sn`, {sn});
+            this.db.execute(`delete
+                             from genre_movie_relation
+                             where sn = :sn`, {sn});
+            this.db.execute(`delete
+                             from comments
+                             where sn = :sn`, {sn});
+            this.db.execute(`delete
+                             from torrents
+                             where sn = :sn`, {sn});
+        });
+    }
+
+    async colMovie(args: { sn: string; }): Promise<void> {
+        const {sn} = args;
+        this.db.execute('update movies set coled = 1 where sn = :sn', {sn});
+    }
+
+    async unColMovie(args: { sn: string; }): Promise<void> {
+        const {sn} = args;
+        this.db.execute('update movies set coled = 0 where sn = :sn', {sn});
     }
 
     async createMovie(movie: Movie): Promise<void> {
@@ -37,6 +69,7 @@ export class MovieService implements IMovieService {
                 this.db.create('actor_movie_relation', {actor, sn, releaseDate: movie.releaseDate});
             }
 
+
             this.db.execute(`delete
                              from genre_movie_relation
                              where sn = :sn`, {sn});
@@ -44,11 +77,13 @@ export class MovieService implements IMovieService {
                 this.db.create('genre_movie_relation', {genre, sn, releaseDate: movie.releaseDate});
             }
 
-            this.db.execute(`delete
-                             from comments
-                             where sn = :sn`, {sn});
-            for (const comment of comments!) {
-                this.db.create('comments', comment);
+            if (comments) {
+                this.db.execute(`delete
+                                 from comments
+                                 where sn = :sn`, {sn});
+                for (const comment of comments) {
+                    this.db.create('comments', comment);
+                }
             }
         });
     }
@@ -82,6 +117,14 @@ export class MovieService implements IMovieService {
             data,
             total
         };
+    }
+
+    async videoDetails(sn: string): Promise<Video | undefined> {
+        const videos = this.db.query<Video>("SELECT * FROM videos WHERE sn = :sn", {sn});
+        if (!videos.length) {
+            return undefined;
+        }
+        return videos[0];
     }
 
     async actor(args: { name: string; }): Promise<ActorInfo> {
@@ -186,6 +229,11 @@ export class MovieService implements IMovieService {
         const previews = movie.previewImages as unknown as string;
         if (previews) {
             movie.previewImages = JSON.parse(previews.replace("{", "[").replace("}", "]"));
+        }
+
+        const players = movie.players as unknown as string;
+        if (players) {
+            movie.players = JSON.parse(players.replace("{", "[").replace("}", "]"));
         }
 
         // 获取种子信息，按发布日期降序排列
@@ -352,6 +400,21 @@ export class MovieService implements IMovieService {
             data,
             total
         };
+    }
+
+    async insertRankMovie(movie: RankMovie) {
+        this.db.create('rank_movie', movie);
+    }
+
+    listSnByActor(actor: string): string[] {
+        const movies = this.db.query<Movie>(`SELECT *
+                                             FROM actor_movie_relation
+                                             WHERE actor = :actor`, {actor});
+        return movies.map(m => m.sn!);
+    }
+
+    insertActor(actor: ActorInfo): void {
+        this.db.createOrUpdate('actors', actor, 'name');
     }
 
     private async _listMoviesByActor(actor: string, page: number, size: number, offset: number): Promise<{

@@ -1,11 +1,14 @@
 import {ShtProvider} from "./provider/sht";
 import {ShtService} from "./sht";
 import {TorrentService} from "./torrent";
-import {ISyncService, Movie, Thread, Torrent, Comment} from "@jslib/common";
+import {ISyncService, Movie, Thread, Torrent, Comment, ActorInfo} from "@jslib/common";
 import {JavlibProvider} from "./provider/javlib";
 import {Manko} from "./provider/manko";
 import {JavbusProvider} from "./provider/javbus";
 import {MovieService} from "./movie";
+import {RankType} from "./provider/provider";
+import {isBlacked, RankMovie} from "./types";
+import {Config} from "../config";
 
 
 export class SyncService implements ISyncService {
@@ -35,7 +38,7 @@ export class SyncService implements ISyncService {
             if (result.status === 'fulfilled' && result.value) {
                 const value = result.value;
                 movie = {...movie, ...value};
-                if(value.actors && value.actors?.length > actors.length) {
+                if (value.actors && value.actors?.length > actors.length) {
                     actors = value.actors;
                 }
                 if (value.genres && value.genres.length > genres.length) {
@@ -47,7 +50,7 @@ export class SyncService implements ISyncService {
                 if (value.comments && value.comments.length > comments.length) {
                     comments = value.comments;
                 }
-                if(value.torrents) {
+                if (value.torrents) {
                     torrents.push(...value.torrents);
                 }
             }
@@ -63,12 +66,90 @@ export class SyncService implements ISyncService {
 
         movie.comments = comments;
         movie.torrents = torrents;
+        console.log(`sync movie for ${sn} successfully.`);
         return movie;
     }
 
 
-    asyncStar(args: { name: string; }): Promise<void> {
-        throw new Error("Method not implemented.");
+    async syncStar(args: { name: string; }, sync?: boolean): Promise<Movie[] | string> {
+        if (sync) {
+            return await this._doSyncStar(args);
+        }
+        this._doSyncStar(args);
+        return `start sync for ${args.name}`;
+    }
+
+    private async _doSyncStar(args: { name: string; }): Promise<Movie[]> {
+        const {name} = args;
+        const sns = this.movieService.listSnByActor(name);
+        const snSet = sns.reduce((acc, s) => acc.add(s), new Set<string>());
+        const blackList = Config.blackList;
+        const isBlack = (sn: string) => blackList.has(sn.split('-')[0]);
+
+        const allPromises = [
+            this.mankoProvider.fetchActor(name, {}),
+            this.javbusProvider.fetchActor(name, {}),
+        ]
+
+        const needSync = [] as string[];
+
+        const allResults = await Promise.allSettled(allPromises);
+        let actor = {} as ActorInfo;
+        for (const result of allResults) {
+            if (result.status === 'fulfilled' && result.value) {
+                if (result.value.actor) {
+                    actor = {...actor, ...result.value.actor};
+                }
+                for (const movie of result.value.movies) {
+                    if (!snSet.has(movie.sn) && !isBlack(movie.sn) && needSync.indexOf(movie.sn) === -1) {
+                        needSync.push(movie.sn);
+                    }
+                }
+            }
+        }
+
+        console.info(`sync movies for ${name}, movies: ${JSON.stringify(needSync)}`);
+        this.movieService.insertActor(actor);
+
+        const movies = [] as Movie[];
+        for (const sn of needSync) {
+            movies.push(await this.syncMovie({sn}));
+        }
+        return movies;
+    }
+
+    async syncRank(type: RankType, date: string): Promise<RankMovie[]> {
+        const allPromises = [
+            this.javlibProvider.fetchRankMovie(type, {}),
+            this.mankoProvider.fetchRankMovie(type, {}),
+        ]
+        const allResults = await Promise.allSettled(allPromises);
+        const data = [] as RankMovie[];
+        const exists = new Set<string>();
+        for (const result of allResults) {
+            if (result.status === 'fulfilled' && result.value) {
+                for (const movie of result.value) {
+                    if (movie.releaseDate! >= date && !isBlacked(movie.sn!) && !exists.has(movie.sn!)) {
+                        movie.releaseDate = date;
+                        data.push(movie);
+                        exists.add(movie.sn!);
+                    }
+                }
+            }
+        }
+        const saved = await this.movieService.list({
+            keyword: date,
+            type: 'popular',
+            page: 1,
+            pageSize: 100
+        });
+        const savedSn = saved.data.reduce((acc, v) => acc.add(v.sn), new Set())
+        for (const r of data) {
+            if (!savedSn.has(r.sn!)) {
+                await this.movieService.insertRankMovie(r);
+            }
+        }
+        return data
     }
 
     async syncSht(options: ({
@@ -77,10 +158,9 @@ export class SyncService implements ISyncService {
         end: number;
         syncDetails: boolean;
     })[]) {
-
         const save = async (t: Thread, form: number) => {
             this.shtService.createOrUpdate(t);
-            if(form === 2 || form === 36 || form === 103) {
+            if (form === 2 || form === 36 || form === 103) {
                 const torrent = {
                     sn: t.sn || t.title,
                     magnet: t.magnet,
@@ -108,7 +188,7 @@ export class SyncService implements ISyncService {
                 option.start,
                 option.end,
                 {
-                    needNextLevel:  (t) => option.syncDetails,
+                    needNextLevel: (t) => option.syncDetails,
                     save: (t: Thread) => save(t, option.form)
                 }
             )

@@ -1,4 +1,4 @@
-import {Link, useNavigate} from 'react-router-dom';
+import {Link, useLocation, useNavigate} from 'react-router-dom';
 import {Button, Input, Space} from 'antd';
 import {UserOutlined} from '@ant-design/icons';
 import './index.css';
@@ -10,8 +10,15 @@ const seriesRegex = new RegExp('[A-Z]{2,6}');
 
 const Navbar = () => {
     const navigate = useNavigate();
+    const {pathname} = useLocation();
 
     const onSearch = async (keyword: string) => {
+        keyword = keyword.trim();
+        if(pathname === '/threads') {
+            navigate('/threads?title=' + keyword);
+            return;
+        }
+
         const toUpperKeyword = keyword.toUpperCase();
         const javSn = extractStandardJavSn(toUpperKeyword);
         if (javSn.isJavSn) {
@@ -33,6 +40,7 @@ const Navbar = () => {
                     <span className="logo-text">PiliPili</span>
                 </Link>
                 <div className="nav-links">
+                    <Link to="/threads">论坛贴</Link>
                     <Link to="/mostwanted">最想要</Link>
                     <Link to="/bestrate">最高分</Link>
                     <Link to="/actors" >

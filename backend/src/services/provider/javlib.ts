@@ -231,11 +231,11 @@ export class JavlibProvider implements IProvider {
                     const $element = $(element);
                     const rankMovie: RankMovie = {
                         sn: $element.find('.id').text().trim(),
-                        thumbURL: $element.find('img').attr('src') || '',
+                        thumbUrl: $element.find('img').attr('src') || '',
                         title: $element.find('.title').text().trim(),
                         homepage: '',
                         provider: 'javlib',
-                        rankType: type,
+                        type: type,
                         releaseDate: releaseDate
                     };
 

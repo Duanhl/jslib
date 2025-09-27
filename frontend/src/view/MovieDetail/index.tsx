@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {Button, Card, Col, Descriptions, Image, Layout, message, Popconfirm, Row, Space, Spin, Typography} from 'antd';
 import {
-    CloseOutlined,
+    CloseOutlined, DeleteFilled,
     EyeOutlined,
     PlayCircleOutlined,
     ReloadOutlined,
@@ -11,7 +11,6 @@ import {
 import Comments from '../Comments';
 import './index.css';
 import VideoPlayer from '../VideoPlayer';
-import {colMovie, unColMovie} from "../../api/api.ts";
 import {useLocation, useNavigate, useParams} from "react-router-dom";
 import {isUndefinedOrNull} from "../../common/types.ts";
 import {getDmmThumbURL} from "../../common/utils.ts";
@@ -35,7 +34,7 @@ const MovieDetail = () => {
                 try {
                     movie = await movieService.details({sn});
                 } catch (e: any) {
-                    if(e.message.indexOf('Movie not found') !== -1) {
+                    if (e.message.indexOf('Movie not found') !== -1) {
                         if (local) {
                             movie = ({
                                 sn: video.sn!,
@@ -47,7 +46,8 @@ const MovieDetail = () => {
                                 location: video.fileName!,
                             }) as Movie
                         } else {
-                            movie = await syncService.syncMovie({sn});
+                            const timeout = setTimeout(async () => await syncService.syncMovie({sn}), 0);
+                            return clearTimeout(timeout);
                         }
                     }
                 }
@@ -65,7 +65,7 @@ const MovieDetail = () => {
 
     const onColMovie = async () => {
         if (movie?.sn) {
-            await colMovie(movie?.sn);
+            await movieService.colMovie({sn: movie?.sn});
             const movieInfo = await movieService.details({sn: movie?.sn});
             setMovie(movieInfo);
         }
@@ -73,7 +73,7 @@ const MovieDetail = () => {
 
     const onUnColMovie = async () => {
         if (movie?.sn) {
-            await unColMovie(movie?.sn);
+            await movieService.unColMovie({sn: movie?.sn});
             const movieInfo = await movieService.details({sn: movie?.sn});
             setMovie(movieInfo);
         }
@@ -84,12 +84,44 @@ const MovieDetail = () => {
         message.info('复制成功');
     };
 
+    const onDelete = async () => {
+        if(movie?.sn) {
+            await movieService.delMovie({sn: movie?.sn});
+            const canGoBack = window.history.length > 1;
+
+            if (canGoBack) {
+                navigate(-1);
+            } else {
+                navigate('/', { replace: true });
+            }
+        }
+    }
+
     let bigCover = movie?.coverUrl;
     if (bigCover?.startsWith('//')) {
         bigCover = 'https:' + bigCover;
     }
-    if(!bigCover) {
+    if (!bigCover) {
         bigCover = getDmmThumbURL(sn!)
+    }
+
+    const isLocalPlayer = !!(movie?.location);
+    const isRemotePlayer = movie?.players && movie.players.length > 0;
+
+    const onPlayClick = () => {
+        if (isLocalPlayer) {
+            setShowPlayer(true);
+            return
+        }
+        if (isRemotePlayer) {
+            for (const url of movie?.players || []) {
+                if(url.indexOf('upload18') !== -1) {
+                    open(url);
+                    return;
+                }
+            }
+            open(movie?.players![0]);
+        }
     }
 
     return (
@@ -101,8 +133,8 @@ const MovieDetail = () => {
                             <div className="movie-cover">
                                 <img src={bigCover} alt={movie.title}/>
                                 {
-                                    movie.location && (
-                                        <div className="play-overlay" onClick={() => setShowPlayer(true)}>
+                                    (isLocalPlayer || isRemotePlayer) && (
+                                        <div className="play-overlay" onClick={onPlayClick}>
                                             <Space direction="vertical" align="center">
                                                 <PlayCircleOutlined className="play-icon"/>
                                                 <Text style={{color: '#fff'}}>立即播放</Text>
@@ -148,7 +180,7 @@ const MovieDetail = () => {
                                     <div className="score-divider"/>
                                     {!movie.coled && <Button
                                         type="text"
-                                        icon={<StarOutlined />}
+                                        icon={<StarOutlined/>}
                                         onClick={onColMovie}
                                         size={"middle"}
                                     />}
@@ -158,6 +190,15 @@ const MovieDetail = () => {
                                         onClick={onUnColMovie}
                                         size={"middle"}
                                     />}
+                                    <div className="score-divider"/>
+
+                                    <Popconfirm title={'是否删除此影片'}
+                                                okText={'是'}
+                                                cancelText={'否'}
+                                                onConfirm={onDelete}>
+                                        <Button type="text" icon={<DeleteFilled />} style={{color: 'rgba(255,255,255,0.9)'}}/>
+                                    </Popconfirm>
+
                                 </Space>
 
                                 <Descriptions
@@ -216,7 +257,7 @@ const MovieDetail = () => {
                                     </Image.PreviewGroup>
                                 </div>
 
-                                <div>
+                                <div >
                                     <Title level={5}>下载地址</Title>
                                     <Row gutter={[10, 10]}>
                                         {movie.torrents?.map((torrent, index) => (
@@ -248,7 +289,7 @@ const MovieDetail = () => {
                             <div className="player-modal-content">
                                 <VideoPlayer
                                     sn={sn!}
-                                    title={movie.title}
+                                    title={movie.title!}
                                     cover={movie.coverUrl!}
                                 />
                             </div>

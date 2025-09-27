@@ -281,8 +281,8 @@ export class JavbusProvider implements IProvider {
     async fetchMovie(keyword: string): Promise<Movie | undefined> {
         try {
             return await this._getMovieInfoByURL(`${this.host}${keyword}`);
-        } catch (error) {
-            console.error('Error fetching movie:', error);
+        } catch (error: any) {
+            console.error(`Error fetching movie [${keyword}], error: ${error.message}`);
             return undefined;
         }
     }
