@@ -61,7 +61,7 @@ export interface Torrent {
     releaseDate?: string;
 }
 
-export type MovieListType = 'actress' | 'series' | 'genre' | 'popular' | 'bestrated' | 'wanted' | 'col';
+export type MovieListType = 'actress' | 'series' | 'genre' | 'popular' | 'bestRated' | 'mostWanted' | 'col';
 
 export interface IMovieService {
     details(args: { sn: string }): Promise<Movie>;

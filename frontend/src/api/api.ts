@@ -5,19 +5,7 @@ export interface Response<T> {
     total: number,
     error: string;
 }
-export async function delMovie(sn: string): Promise<boolean> {
-    const response = await doRequest(`/api/delmovie/${sn}`, {});
-    return response.success;
-}
 
-export async function syncMovieByStar(name: string): Promise<string> {
-    const response = await doRequest(`/api/sync/star/${name}`, {});
-    if (response.success) {
-        return response.data as string;
-    } else {
-        throw new Error(response.error);
-    }
-}
 
 export async function loopEventMsg(): Promise<EventMsg> {
     const response = await doRequest('/api/event', {});

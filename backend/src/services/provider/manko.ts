@@ -113,13 +113,22 @@ export class Manko implements IProvider {
     }
 
     async fetchRankMovie(type: RankType, options?: FetchOptions<Movie>): Promise<RankMovie[]> {
-        let res;
+        const res: RankMovie[] = [];
         if (type === 'bestRated') {
-            res = await fetch(`${this.host}/swx/movie/search?page=1&size=30&${TOP_RATED}=true`)
-        } else {
-            res = await fetch(`${this.host}/swx/movie/search?page=1&size=30&${MOST_POPULAR}=true`)
+            for (let i = 1; i <= 10; i++) {
+                res.push(... await this._fetchRankMovie(type, `${this.host}/swx/movie/search?page=${i}&size=30&${TOP_RATED}=true`, options))
+            }
+            for (const m of res) {
+                m.releaseDate = m.releaseDate ? m.releaseDate.substring(0,7) : m.releaseDate;
+            }
+        } else if(type === 'popular') {
+            res.push(... await this._fetchRankMovie(type, `${this.host}/swx/movie/search?page=1&size=30&${MOST_POPULAR}=true`, options));
         }
+        return res;
+    }
 
+    private async _fetchRankMovie(type: RankType, url: string, options?: FetchOptions<Movie>): Promise<RankMovie[]> {
+        const res = await fetch(url);
         const resJ = await res.json();
         const result: RankMovie[] = [];
         const listParsed = JSON.parse(decode91(resJ['data'])) as unknown as MankoMovie[];
@@ -182,6 +191,7 @@ export class Manko implements IProvider {
         }
 
         const doubleScore = (score: string): string | undefined => {
+            if(!score) return undefined;
             try {
                 return 2 * parseFloat(score) + '';
             } catch (e) {

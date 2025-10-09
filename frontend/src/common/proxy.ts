@@ -1,7 +1,7 @@
 import {Response} from "../api/api";
 import {IMovieService, ISyncService, IThreadService, ITorrentService} from "@jslib/common";
 
-const HOST = "http://localhost:3123/api";
+const HOST = "/api";
 
 export function toService<T extends object>(path: string): T {
     return new Proxy({}, {

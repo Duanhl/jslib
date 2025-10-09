@@ -1,6 +1,7 @@
 import {IMovieService, Movie, Torrent, Video, Comment, MovieListType, ActorInfo} from "@jslib/common";
 import {DB} from "../db";
 import {RankMovie} from "./types";
+import {calcActorScore} from "./score";
 
 export function formatterDate(date?: Date) {
     if (!date) {
@@ -84,6 +85,7 @@ export class MovieService implements IMovieService {
                 for (const comment of comments) {
                     this.db.create('comments', comment);
                 }
+                movie.comments = comments;
             }
         });
     }
@@ -220,10 +222,10 @@ export class MovieService implements IMovieService {
         }
 
         const movie = movieResults[0];
-        const actors = movie.actors as unknown as string;
+        const actors = movie.actors as unknown as string || '[]';
         movie.actors = JSON.parse(actors.replace("{", "[").replace("}", "]"));
 
-        const genres = movie.genres as unknown as string;
+        const genres = movie.genres as unknown as string || '[]';
         movie.genres = JSON.parse(genres.replace("{", "[").replace("}", "]"));
 
         const previews = movie.previewImages as unknown as string;
@@ -279,8 +281,8 @@ export class MovieService implements IMovieService {
             case 'series':
                 return await this._listMovieBySNPrefix(keyword, page, pageSize, offset);
             case 'popular':
-            case 'bestrated':
-            case 'wanted':
+            case 'bestRated':
+            case 'mostWanted':
                 return await this._listMovieByRank(type, keyword, page, pageSize, offset);
             case 'actress':
                 return await this._listMoviesByActor(keyword, page, pageSize, offset);
@@ -370,7 +372,7 @@ export class MovieService implements IMovieService {
         };
     }
 
-    private async _listMovieByRank(rankType: 'popular' | 'bestrated' | 'wanted', date: string, page: number, size: number, offset: number): Promise<{
+    private async _listMovieByRank(rankType: 'popular' | 'bestRated' | 'mostWanted', date: string, page: number, size: number, offset: number): Promise<{
         data: Movie[],
         total: number
     }> {
@@ -379,7 +381,7 @@ export class MovieService implements IMovieService {
         if (!processedDate) {
             processedDate = formatterDate();
         }
-        if (rankType === 'bestrated' || rankType === 'wanted') {
+        if (rankType === 'bestRated' || rankType === 'mostWanted') {
             processedDate = processedDate.substring(0, 7); // 取前7位 YYYY-MM
         }
 
@@ -415,6 +417,11 @@ export class MovieService implements IMovieService {
 
     insertActor(actor: ActorInfo): void {
         this.db.createOrUpdate('actors', actor, 'name');
+    }
+
+    async calcActorScore(actor: string) {
+        const cutDate = new Date(new Date().getTime() - 6.1 * 30 * 24 * 3600 * 1000).toISOString().split("T")[0];
+        await calcActorScore(this.db, actor, cutDate)
     }
 
     private async _listMoviesByActor(actor: string, page: number, size: number, offset: number): Promise<{

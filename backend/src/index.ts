@@ -14,7 +14,7 @@ import {ShtProvider} from "./services/provider/sht";
 import {BrowserService} from "./services/provider/browser";
 import * as fs from "node:fs";
 
-const PORT = process.env["PORT"] || 3123;
+const PORT = 3123;
 
 class Server {
     constructor() {
@@ -49,7 +49,7 @@ class Server {
             console.log(err);
         })
 
-        app.listen(PORT, () => {
+        app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running on port ${PORT}`)
         });
     }

@@ -77,8 +77,8 @@ const Application: React.FC = () => {
                             </>
 
                         }/>
-                        <Route path={'/mostwanted'} element={<MovieSectionWrapper type="wanted"/>}/>
-                        <Route path={'/bestrate'} element={<MovieSectionWrapper type={'bestrated'}/>}/>
+                        <Route path={'/mostwanted'} element={<MovieSectionWrapper type="mostWanted"/>}/>
+                        <Route path={'/bestrate'} element={<MovieSectionWrapper type={'bestRated'}/>}/>
                         <Route path={'/cols'} element={<MovieSectionWrapper type={'col'}/>}/>
                         <Route path={'/threads'} element={<Threads />}/>
 

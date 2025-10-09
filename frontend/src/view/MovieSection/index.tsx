@@ -107,8 +107,8 @@ const MovieSection = (props: { type: MovieListType, keyword?: string, closeTitle
             case 'popular':
                 pageResult = await movieService.list({keyword: '', type, page, pageSize});
                 break;
-            case 'wanted':
-            case 'bestrated':
+            case 'bestRated':
+            case 'mostWanted':
             case "col":
                 pageResult = await movieService.list({keyword: '', type, page, pageSize});
                 break;
@@ -128,10 +128,10 @@ const MovieSection = (props: { type: MovieListType, keyword?: string, closeTitle
 
     const onPageChange = (page: number) => {
         switch (type) {
-            case 'bestrated':
+            case 'bestRated':
                 navigate(`/bestrate?pageNo=${page}`);
                 break;
-            case 'wanted':
+            case 'mostWanted':
                 navigate(`/mostwanted?pageNo=${page}`);
                 break;
             case 'actress':

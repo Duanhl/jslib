@@ -17,7 +17,7 @@ export class TorrentService implements ITorrentService {
         return rows.map(toCamel) as Torrent[];
     }
 
-    async listHighCh(args: {keyword: string, page?: number, pageSize?: number}): Promise<Torrent[]> {
+    async listHighCh(args: { keyword: string, page?: number, pageSize?: number }): Promise<Torrent[]> {
         let date = args.keyword;
         if (!date) {
             date = new Date().toISOString().replace(/T/, "");
@@ -27,19 +27,26 @@ export class TorrentService implements ITorrentService {
             FROM torrents
             WHERE provider = :provider
               AND release_date = :date
-            AND dn = 'HD_Zh'
+              AND dn = 'HD_Zh'
             ORDER BY id ASC
         `;
-        const rows =  this.db.query(sql, {provider: 'sehuatang', date});
+        const rows = this.db.query(sql, {provider: 'sehuatang', date});
         return rows.map(toCamel) as Torrent[];
     }
 
     /** 保存种子：若 magnet 已存在则先删除再插入；magnet 为空直接忽略 */
     async saveTorrent(torrent: Torrent): Promise<void> {
-        if(!torrent.magnet) {
+        if (!torrent.magnet) {
             return
         }
-        this.db.createOrUpdate('torrents', this._normalizeTorrent(torrent), 'magnet');
+        torrent = this._normalizeTorrent(torrent);
+        const torrents = this.db.query(`select *
+                                        from torrents
+                                        where magnet = :magnet`, {magnet: torrent.magnet});
+        if (torrents.length > 0) {
+            return
+        }
+        this.db.create('torrents', torrent);
     }
 
     /** magnet 归一化：截断 60 位，并把第 21 位之后转大写 */

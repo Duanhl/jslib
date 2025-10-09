@@ -26,6 +26,7 @@ const MovieDetail = () => {
     const [movie, setMovie] = useState<Movie | undefined>(undefined);
     const [showPlayer, setShowPlayer] = useState(false);
     const navigate = useNavigate();
+    const [messageApi] = message.useMessage();
 
     useEffect(() => {
         (async () => {
@@ -46,8 +47,7 @@ const MovieDetail = () => {
                                 location: video.fileName!,
                             }) as Movie
                         } else {
-                            const timeout = setTimeout(async () => await syncService.syncMovie({sn}), 0);
-                            return clearTimeout(timeout);
+                            movie = await syncService.syncMovie({sn});
                         }
                     }
                 }
@@ -81,7 +81,10 @@ const MovieDetail = () => {
 
     const onClickCopy = async (magnet: string) => {
         await navigator.clipboard.writeText(magnet + "\n");
-        message.info('复制成功');
+        messageApi.open({
+            type: 'info',
+            content: '复制成功'
+        });
     };
 
     const onDelete = async () => {
@@ -280,7 +283,7 @@ const MovieDetail = () => {
                         </Card>
 
                         <Card className="section-card" title={"评论"}>
-                            <Comments comments={movie.comments!}/>
+                            <Comments comments={movie.comments || []}/>
                         </Card>
                     </div>
 

@@ -52,7 +52,7 @@ describe('Sync Form', () => {
 
     describe('sync movie', () => {
         it('ABF-261', async () => {
-            const movie = await syncService.syncMovie({sn: 'ABF-261'});
+            const movie = await syncService.syncMovie({sn: 'ABF-264'});
             console.log(movie);
         })
     })
@@ -63,6 +63,41 @@ describe('Sync Form', () => {
             const releaseDate = yesterday.toISOString().split('T')[0]
             const result = await syncService.syncRank('popular', releaseDate);
             console.log(result);
+        })
+    })
+
+    describe('sync rank movie', () => {
+        it('mostwanted and bestrate', async () => {
+            const yesterday = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            const releaseDate = yesterday.toISOString().split('T')[0].substring(0, 7)
+            const result1 = await syncService.syncRank('mostWanted', releaseDate);
+            console.log(result1);
+
+            const result2 = await syncService.syncRank('bestRated', releaseDate);
+            console.log(result2);
+        })
+    })
+
+    describe('sync rank movie details', () => {
+        it('all', async () => {
+            const movies = await movieService.list({
+                type: 'bestRated',
+                keyword: '2025-10',
+                page: 1,
+                pageSize: 300
+            });
+
+            for (const m of movies.data) {
+                let movie;
+                try {
+                    movie = await movieService.details({sn: m.sn});
+                } catch (e) {
+                    movie = undefined;
+                }
+                if (!movie || (!movie.players || movie.players.length === 0)) {
+                    await syncService.syncMovie({sn: m.sn});
+                }
+            }
         })
     })
 

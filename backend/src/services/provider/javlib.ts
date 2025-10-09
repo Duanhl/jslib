@@ -197,7 +197,10 @@ export class JavlibProvider implements IProvider {
     async fetchRankMovie(type: RankType, options: FetchOptions<Movie>): Promise<RankMovie[]> {
         const rankMovies: RankMovie[] = [];
         const limit = 100;
-        const releaseDate = new Date().toISOString().split('T')[0]; // 当前日期
+        let releaseDate = new Date().toISOString().split('T')[0]; // 当前日期
+        if(type === 'bestRated' || type === 'mostWanted') {
+            releaseDate = releaseDate.substring(0,7)
+        }
 
         try {
             let maxPages = 10;

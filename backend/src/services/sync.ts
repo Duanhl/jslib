@@ -9,6 +9,7 @@ import {MovieService} from "./movie";
 import {RankType} from "./provider/provider";
 import {isBlacked, RankMovie} from "./types";
 import {Config} from "../config";
+import {isUndefinedOrNull} from "../common/types";
 
 
 export class SyncService implements ISyncService {
@@ -37,7 +38,11 @@ export class SyncService implements ISyncService {
         for (const result of results) {
             if (result.status === 'fulfilled' && result.value) {
                 const value = result.value;
-                movie = {...movie, ...value};
+                movie = {...movie, ...Object.fromEntries(
+                        Object.entries(value).filter(([_, v]) => {
+                            return !isUndefinedOrNull(v);
+                        })
+                    )};
                 if (value.actors && value.actors?.length > actors.length) {
                     actors = value.actors;
                 }
@@ -59,13 +64,14 @@ export class SyncService implements ISyncService {
         movie.actors = actors;
         movie.genres = genres;
         movie.previewImages = previewImages;
+        movie.comments = comments;
+
         await this.movieService.createMovie(movie);
         for (const torrent of torrents) {
             await this.torrentService.saveTorrent(torrent)
         }
-
-        movie.comments = comments;
         movie.torrents = torrents;
+
         console.log(`sync movie for ${sn} successfully.`);
         return movie;
     }
@@ -115,6 +121,7 @@ export class SyncService implements ISyncService {
         for (const sn of needSync) {
             movies.push(await this.syncMovie({sn}));
         }
+        await this.movieService.calcActorScore(name);
         return movies;
     }
 
