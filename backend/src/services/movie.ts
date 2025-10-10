@@ -376,26 +376,18 @@ export class MovieService implements IMovieService {
         data: Movie[],
         total: number
     }> {
-        // 处理日期格式
-        let processedDate = date;
-        if (!processedDate) {
-            processedDate = formatterDate();
-        }
-        if (rankType === 'bestRated' || rankType === 'mostWanted') {
-            processedDate = processedDate.substring(0, 7); // 取前7位 YYYY-MM
-        }
 
         // 获取总数
         const countResult = this.db.query<{ count: number }>(
-            "SELECT COUNT(*) as count FROM rank_movie WHERE type = :type AND release_date = :release_date",
-            {type: rankType, release_date: processedDate}
+            "SELECT COUNT(*) as count FROM rank_movie WHERE type = :type",
+            {type: rankType}
         );
         const total = countResult[0]?.count || 0;
 
         // 获取数据
         const data = this.db.query<Movie>(
-            "SELECT * FROM rank_movie WHERE type = :type AND release_date = :release_date LIMIT :limit OFFSET :offset",
-            {type: rankType, release_date: processedDate, limit: size, offset}
+            "SELECT * FROM rank_movie WHERE type = :type order by release_date desc LIMIT :limit OFFSET :offset",
+            {type: rankType, limit: size, offset}
         );
 
         return {

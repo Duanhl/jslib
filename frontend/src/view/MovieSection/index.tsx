@@ -48,7 +48,9 @@ export const MovieCard = (props: { movie: Movie, magnet?: string, video?: Video 
                     {
                         !!movie.title && <span className={"thumb-title"}>{movie.title}</span>
                     }
-                    <strong>{movie.sn}</strong>
+                    <Space direction={"horizontal"}><strong>{movie.sn}</strong>
+                        <span className={"thumb-date"}>{movie.releaseDate}</span>
+                    </Space>
                 </Space>
             </Card>
         )

@@ -6,7 +6,7 @@ import {calcActorScore} from "./score";
 
 describe('test calc score.', function () {
     const config = Config.defaultConfig();
-    const db = new DB(config.libDbPath);
+    const db = new DB(config.dbpath);
 
     describe('#calculate single', function () {
         it('小宵こなん', async () => {

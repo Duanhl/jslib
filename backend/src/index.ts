@@ -23,10 +23,9 @@ class Server {
     async start(): Promise<void> {
         const config = this.initConfig();
         const db = new DB(config.dbpath);
-        const libdb = new DB(config.libDbPath)
         const shtService = new ShtService(db);
-        const movieService = new MovieService(libdb);
-        const torrentService = new TorrentService(libdb);
+        const movieService = new MovieService(db);
+        const torrentService = new TorrentService(db);
 
         const browserService = new BrowserService();
         const javlib = new JavlibProvider(config);

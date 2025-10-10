@@ -34,6 +34,10 @@
     max-width: 350px;
 }
 
+.thumb-date {
+    font-size: 11px;
+}
+
 /* 响应式布局优化 */
 @media (min-width: 1440px) {
     .movie-section {

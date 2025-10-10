@@ -81,17 +81,12 @@ const filterSet = new Set<string>([
 
 export class Config {
     constructor(private readonly _dbpath: string,
-                private readonly _libDbPath: string,
                 private readonly _dbTracing: boolean,
                 private readonly _shtHost: string,
                 private readonly _shtTracing: boolean,
                 private readonly _mankoHost: string,
                 private readonly _javbusHost: string,
                 private readonly _javlibHost: string) {
-    }
-
-    get libDbPath(): string {
-        return this._libDbPath;
     }
 
     get dbpath(): string {
@@ -128,8 +123,7 @@ export class Config {
 
     static defaultConfig(): Config {
         return new Config(
-            path.join(os.homedir(), '.jslib/index.db'),
-            'D:/dev/lib.db',
+            path.join(os.homedir(), '.jslib/lib.db'),
             true,
             'https://espa.3n852.net/',
             false,

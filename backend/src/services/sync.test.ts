@@ -26,10 +26,8 @@ describe('Sync Form', () => {
     const db = new DB(config.dbpath);
     const shtService = new ShtService(db);
 
-
-    const db2 = new DB('D:/dev/lib.db');
-    const torrentService = new TorrentService(db2);
-    const movieService = new MovieService(db2);
+    const torrentService = new TorrentService(db);
+    const movieService = new MovieService(db);
 
     const syncService = new SyncService(shtScrapy, javlib, manko, javbus,
         movieService, shtService, torrentService);
