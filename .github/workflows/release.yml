@@ -40,7 +40,6 @@ jobs:
         run: |
           mkdir -p jslib-${{ github.ref_name }}
           cp -r backend/dist jslib-${{ github.ref_name }}/
-          cp -r backend/node_modules jslib-${{ github.ref_name }}/
           cp backend/package.json jslib-${{ github.ref_name }}/
           tar -czf jslib-${{ github.ref_name }}.tar.gz jslib-${{ github.ref_name }}/
 

@@ -1,4 +1,4 @@
-import {Browser, chromium} from "playwright";
+import {Browser} from "playwright";
 import {Page} from "playwright-core";
 
 export class BrowserService {
@@ -13,6 +13,7 @@ export class BrowserService {
     private async loadBrowser(): Promise<Browser> {
         return new Promise<Browser>(async (resolve, reject) => {
             try {
+                const { chromium } = await import('playwright');
                 const browser = chromium.launch({headless: false});
                 return resolve(browser);
             } catch (e) {
