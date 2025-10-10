@@ -21,7 +21,7 @@ jobs:
       - name: Get version and create tag
         id: version
         run: |
-            VERSION=$(date +'v%Y.%m.%d.%H%M')
+            VERSION=$(date +'%Y.%m.%d.%H%M')
             echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Use Node.js ${{ matrix.node-version }}
@@ -40,6 +40,8 @@ jobs:
         run: |
           mkdir -p jslib-${{ github.ref_name }}
           cp -r backend/dist jslib-${{ github.ref_name }}/
+          cp -r backend/node_modules jslib-${{ github.ref_name }}/
+          cp backend/package.json jslib-${{ github.ref_name }}/
           tar -czf jslib-${{ github.ref_name }}.tar.gz jslib-${{ github.ref_name }}/
 
       - name: Upload to GitHub Releases
