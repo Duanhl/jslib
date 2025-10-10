@@ -21,7 +21,7 @@ jobs:
       - name: Get version and create tag
         id: version
         run: |
-            VERSION=$(release +'v%Y.%m.%d.%H%M')
+            VERSION=$(date +'v%Y.%m.%d.%H%M')
             echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Use Node.js ${{ matrix.node-version }}
