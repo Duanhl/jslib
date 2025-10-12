@@ -36,10 +36,10 @@ describe('Sync Form', () => {
     describe('sync thread', () => {
         it('sync thread', async () => {
             const options = [
-                {form: 2, start: 1, end: 2, syncDetails: true},
-                {form: 36, start: 1, end: 2, syncDetails: true},
-                {form: 103, start: 1, end: 2, syncDetails: true},
-                {form: 95, start: 1, end: 5, syncDetails: false},
+                {form: 2, start: 1, end: 4, syncDetails: true},
+                {form: 36, start: 1, end: 4, syncDetails: true},
+                {form: 103, start: 1, end: 4, syncDetails: true},
+                {form: 95, start: 1, end: 20, syncDetails: false},
             ]
 
             await syncService.syncSht(options);
@@ -57,21 +57,17 @@ describe('Sync Form', () => {
 
     describe('sync rank movie', () => {
         it('popular', async () => {
-            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            const releaseDate = yesterday.toISOString().split('T')[0]
-            const result = await syncService.syncRank('popular', releaseDate);
+            const result = await syncService.syncRank({type: 'popular'});
             console.log(result);
         })
     })
 
     describe('sync rank movie', () => {
         it('mostwanted and bestrate', async () => {
-            const yesterday = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-            const releaseDate = yesterday.toISOString().split('T')[0].substring(0, 7)
-            const result1 = await syncService.syncRank('mostWanted', releaseDate);
+            const result1 = await syncService.syncRank({type: 'mostWanted'});
             console.log(result1);
 
-            const result2 = await syncService.syncRank('bestRated', releaseDate);
+            const result2 = await syncService.syncRank({type: 'bestRated'});
             console.log(result2);
         })
     })

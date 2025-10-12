@@ -386,9 +386,15 @@ export class MovieService implements IMovieService {
 
         // 获取数据
         const data = this.db.query<Movie>(
-            "SELECT * FROM rank_movie WHERE type = :type order by release_date desc LIMIT :limit OFFSET :offset",
+            "SELECT *, thumb_url as coverUrl FROM rank_movie WHERE type = :type order by release_date desc LIMIT :limit OFFSET :offset",
             {type: rankType, limit: size, offset}
         );
+
+        for (const m of data) {
+            if(m.coverUrl) {
+                m.coverUrl = m.coverUrl.replace("ps.jpg", "pl.jpg");
+            }
+        }
 
         return {
             data,
@@ -397,7 +403,13 @@ export class MovieService implements IMovieService {
     }
 
     async insertRankMovie(movie: RankMovie) {
-        this.db.create('rank_movie', movie);
+        this.db.transaction(() => {
+            this.db.execute('delete from rank_movie where sn = :sn and type = :type', {
+                sn: movie.sn,
+                type: movie.type
+            });
+            this.db.create('rank_movie', movie);
+        })
     }
 
     listSnByActor(actor: string): string[] {

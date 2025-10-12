@@ -1,10 +1,6 @@
-import {Button, Col, DatePicker, Row, Space} from "antd";
-import dayjs, {Dayjs} from "dayjs";
+import {Col, Pagination, Row} from "antd";
 import {useEffect, useState} from "react";
 import {MovieCard} from "../MovieSection";
-import {useNavigate, useSearchParams} from "react-router-dom";
-import {formatDate} from "../../common/date.ts";
-import type {DatePickerProps} from "antd/es/date-picker";
 import "./index.css"
 import {Movie, Torrent} from "@jslib/common";
 import {torrentService} from "../../common/proxy.ts";
@@ -12,56 +8,39 @@ import {torrentService} from "../../common/proxy.ts";
 
 const HighTorrents = () => {
     const [torrents, setTorrents] = useState<Torrent[]>([]);
-    const navigate = useNavigate();
-
-    let date = formatDate(new Date(), 'yyyy-MM-dd');
-    const [params] = useSearchParams();
-    if (params.has('date')) {
-        date = params.get('date') || '';
-    }
+    const pageSize = 16;
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
 
     useEffect(() => {
         (async () => {
-            const torrents = (await torrentService.listHighCh({keyword: date}));
-            setTorrents(torrents);
+            const res = (await torrentService.listHighCh({page, pageSize}));
+            setTorrents(res.torrents);
+            setTotal(res.total)
         })();
-    }, [date]);
+    }, [page]);
 
-    const onDayChange = (value: DatePickerProps['value']): void => {
-        navigate(`/torrents?date=${value?.format('YYYY-MM-DD')}`);
-    };
-
-    const disableDay = (value: Dayjs): boolean => {
-        return !value.isBefore(dayjs());
-    };
 
     return (
         <div className={"torrents-page"}>
-            <div className={"torrents-header"}>
-                <div className={"torrents-header-content"}>
-                    <Space direction={'horizontal'}>
-                        <Button onClick={() => onDayChange(dayjs(date).add(-1, 'day'))}>上一天</Button>
-                        <DatePicker
-                            value={dayjs(date)}
-                            disabledDate={disableDay}
-                            onChange={day => onDayChange(day)}
-                            style={{width: 220}}
-                        />
-                        <Button
-                            onClick={() => onDayChange(dayjs(date).add(1, 'day'))}
-                            disabled={date === dayjs().format('YYYY-MM-DD')}>下一天</Button>
-                    </Space>
-                </div>
-            </div>
             <div className={"movie-section"}>
                 <Row gutter={[16, 24]}>
                     {torrents.map((t, index) => (
                         <Col key={index} xs={24} sm={12} md={8} lg={6} xl={6} xxl={6}>
-                            <MovieCard movie={{sn: t.sn} as Movie} magnet={t.magnet}/>
+                            <MovieCard movie={{sn: t.sn, releaseDate: t.releaseDate} as Movie} magnet={t.magnet}/>
                         </Col>
                     ))}
                 </Row>
             </div>
+            <Pagination
+                current={page}
+                pageSize={pageSize}
+                total={total}
+                onChange={setPage}
+                showQuickJumper={true}
+                hideOnSinglePage={true}
+                align={"center"}
+            />
         </div>
     )
 }

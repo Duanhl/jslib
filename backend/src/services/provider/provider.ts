@@ -4,6 +4,8 @@ import {ActorInfo, Movie, Thread} from "@jslib/common";
 export interface FetchOptions<T> {
     save?: (t: T) => void | Promise<void>;
     needNextLevel?: (t: T) => boolean;
+    start?: number;
+    end?: number;
 }
 
 export type RankType = 'bestRated' | 'mostWanted' | 'popular';

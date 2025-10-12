@@ -113,16 +113,23 @@ export class Manko implements IProvider {
     }
 
     async fetchRankMovie(type: RankType, options?: FetchOptions<Movie>): Promise<RankMovie[]> {
+        let start = 1;
+        let end = 0;
+        if(options && options.start) {
+            start = options.start;
+        }
+        if (options && options.end) {
+            end = options.end;
+        }
         const res: RankMovie[] = [];
         if (type === 'bestRated') {
-            for (let i = 1; i <= 10; i++) {
+            for (let i = start; i <= (end || 10); i++) {
                 res.push(... await this._fetchRankMovie(type, `${this.host}/swx/movie/search?page=${i}&size=30&${TOP_RATED}=true`, options))
             }
-            for (const m of res) {
-                m.releaseDate = m.releaseDate ? m.releaseDate.substring(0,7) : m.releaseDate;
-            }
         } else if(type === 'popular') {
-            res.push(... await this._fetchRankMovie(type, `${this.host}/swx/movie/search?page=1&size=30&${MOST_POPULAR}=true`, options));
+            for (let i = start; i <= (end || 1); i++) {
+                res.push(...await this._fetchRankMovie(type, `${this.host}/swx/movie/search?page=1&size=30&${MOST_POPULAR}=true`, options));
+            }
         }
         return res;
     }

@@ -17,21 +17,30 @@ export class TorrentService implements ITorrentService {
         return rows.map(toCamel) as Torrent[];
     }
 
-    async listHighCh(args: { keyword: string, page?: number, pageSize?: number }): Promise<Torrent[]> {
-        let date = args.keyword;
-        if (!date) {
-            date = new Date().toISOString().replace(/T/, "");
-        }
+    async listHighCh(args: { keyword?: string, page?: number, pageSize?: number }): Promise<{torrents:Torrent[],
+    total: number}> {
+        let date = args.keyword || '';
+        const page = args.page || 1;
+        const pageSize = args.pageSize || 20;
+        const offset = (page - 1) * pageSize;
+        const cntSql = `SELECT count(*) as cnt FROM torrents
+                        WHERE provider = :provider
+                            ${date && 'AND release_date <= :date'}
+              AND dn = 'HD_Zh'`;
+        const cntRows = this.db.query(cntSql, {provider: 'sehuatang', date});
+        const total = cntRows.length > 0 ? parseInt(cntRows[0]['cnt']) : 0;
+
         const sql = `
             SELECT *
             FROM torrents
             WHERE provider = :provider
-              AND release_date = :date
+                ${date && 'AND release_date <= :date'}
               AND dn = 'HD_Zh'
-            ORDER BY id ASC
+            ORDER BY id DESC
+            LIMIT :limit OFFSET :offset
         `;
-        const rows = this.db.query(sql, {provider: 'sehuatang', date});
-        return rows.map(toCamel) as Torrent[];
+        const rows = this.db.query(sql, {provider: 'sehuatang', date, offset, limit: pageSize});
+        return {torrents: rows.map(toCamel) as Torrent[], total: total };
     }
 
     /** 保存种子：若 magnet 已存在则先删除再插入；magnet 为空直接忽略 */

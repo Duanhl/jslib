@@ -104,7 +104,7 @@ export interface ActorInfo {
 }
 
 export interface ITorrentService {
-    listHighCh(args: { keyword: string, page?: number, pageSize?: number }): Promise<Torrent[]>;
+    listHighCh(args: { keyword?: string, page?: number, pageSize?: number }): Promise<{torrents: Torrent[], total: number}>;
 }
 
 export interface Video {

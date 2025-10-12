@@ -125,10 +125,11 @@ export class SyncService implements ISyncService {
         return movies;
     }
 
-    async syncRank(type: RankType, date: string): Promise<RankMovie[]> {
+    async syncRank(args: {type: RankType, start?: number, end?: number}): Promise<RankMovie[]> {
+        const {type, start, end} = args;
         const allPromises = [
-            this.javlibProvider.fetchRankMovie(type, {}),
-            this.mankoProvider.fetchRankMovie(type, {}),
+            this.javlibProvider.fetchRankMovie(type, {start, end}),
+            this.mankoProvider.fetchRankMovie(type, {start, end}),
         ]
         const allResults = await Promise.allSettled(allPromises);
         const data = [] as RankMovie[];
@@ -136,25 +137,16 @@ export class SyncService implements ISyncService {
         for (const result of allResults) {
             if (result.status === 'fulfilled' && result.value) {
                 for (const movie of result.value) {
-                    if (movie.releaseDate! >= date && !isBlacked(movie.sn!) && !exists.has(movie.sn!)) {
-                        movie.releaseDate = date;
+                    // filter duplicate
+                    if (!isBlacked(movie.sn!) && !exists.has(movie.sn!) && !movie.sn?.includes('membership')) {
                         data.push(movie);
                         exists.add(movie.sn!);
                     }
                 }
             }
         }
-        const saved = await this.movieService.list({
-            keyword: date,
-            type: 'popular',
-            page: 1,
-            pageSize: 100
-        });
-        const savedSn = saved.data.reduce((acc, v) => acc.add(v.sn), new Set())
         for (const r of data) {
-            if (!savedSn.has(r.sn!)) {
-                await this.movieService.insertRankMovie(r);
-            }
+            await this.movieService.insertRankMovie(r);
         }
         return data
     }
