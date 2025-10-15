@@ -13,7 +13,7 @@ export class BrowserService {
     private async loadBrowser(): Promise<Browser> {
         const { chromium } = await import('playwright');
         return await chromium.launch({
-            headless: false,
+            headless: true,
         });
     }
 
