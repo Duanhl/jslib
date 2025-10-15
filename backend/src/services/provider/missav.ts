@@ -1,40 +1,19 @@
-import {IProvider} from "./provider";
-import {Movie} from "@jslib/common";
-import {extractCode, extractFC2, extractFC2OrCode} from "../../common/utils";
+import {FetchOptions, IProvider, RankType} from "./provider";
+import {Movie, MovieListType} from "@jslib/common";
+import {extractCode, extractFC2, extractFC2OrCode, parseRelativeDay} from "../../common/utils";
 import {Config} from "../../config";
 import * as cheerio from "cheerio";
 import {BrowserService} from "./browser";
+import {RankMovie} from "../types";
 
 export class MissavProvider implements IProvider {
     private _host: string | undefined;
-    // private axios: AxiosInstance;
 
     constructor(config: Config, private readonly browser: BrowserService) {
         this._host = config.missavHost;
 
-        // const createAxios = (host: string) => {
-        //     return axios.create({
-        //         timeout: 10000,
-        //         baseURL: host,
-        //         headers: {
-        //             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-        //             Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        //             'Accept-Language': 'zh-CN,zh;q=0.9',
-        //             'Accept-Encoding': 'gzip, deflate, br',
-        //             'Sec-Fetch-Dest': 'document',
-        //             'Sec-Fetch-Mode': 'navigate',
-        //             'Sec-Fetch-Site': 'none',
-        //             'Sec-Fetch-User': '?1',
-        //             'Upgrade-Insecure-Requests': '1'
-        //         },
-        //         httpsAgent: new https.Agent({ maxVersion: 'TLSv1.3' })
-        //     })
-        // }
-
-        // this.axios = createAxios(this._host);
         config.on('configChanged', data => {
             this._host = data.missavHost;
-            // this.axios = createAxios(this._host!);
         })
     }
 
@@ -46,17 +25,29 @@ export class MissavProvider implements IProvider {
         if(extractFC2(keyword)) {
             path = path.replace('fc2', 'fc2-')
         }
-        const url = this._host + `v/${path}`
-        // const response = await this.axios.get(url);
         const page = await this.browser.openPage();
-        await page.goto(url, {waitUntil: 'domcontentloaded'});
-        const html = await page.content();
-        const $search = cheerio.load(html);
-        return this._parseMovieDetails($search, `${this._host}v/${path}-uncensored-leaked`);
+        try {
+            for (const url of [this._host + `v/${path}`, this._host + `v/${path}-uncensored-leaked`]) {
+                await page.goto(url, {waitUntil: 'domcontentloaded'});
+                const html = await page.content();
+                const $search = cheerio.load(html);
+                const movie =  this._parseMovieDetails($search);
+                if(movie) {
+                    if(extractCode(movie.sn)) {
+                       delete movie.genres;
+                    }
+                    return movie;
+                }
+            }
+            return;
+        } finally {
+            await page.close();
+        }
     }
 
-    private _parseMovieDetails($: cheerio.CheerioAPI, url: string): Movie {
+    private _parseMovieDetails($: cheerio.CheerioAPI): Movie | undefined {
         const result: Record<string, string | string[]> = {}
+
         $('.meta > div').each((_, row) => {
             const label = $(row).find('label').text().replace(':', ''); // 去掉冒号
             const values = [] as string[];
@@ -65,14 +56,74 @@ export class MissavProvider implements IProvider {
             });
             result[label] = values.length === 1 ? values[0] : values; // 单值直接字符串，多值保持数组
         });
-        return {
-            sn: extractCode(result['代码'] as string)!,
-            releaseDate: result['发布日期'] as string,
-            duration: result['时长'] as string,
-            genres: result['类别'] as string[],
-            maker: result['制作商'] as string,
-            series: result['行李电视'] as string,
-            players: [url]
+        if(!result['コード']) {
+            return
         }
+        return {
+            sn: extractFC2OrCode(result['コード'] as string)!,
+            title: $('#video-info .title').text(),
+            releaseDate: result['発売日'] as string,
+            duration: result['再生時間'] as string,
+            genres: result['ジャンル'] as string[],
+            maker: result['メーカー'] as string,
+            series: result['タグ'] as string,
+            actors: typeof result['女優'] === 'string' ? [result['女優']] : result['女優'] as string[],
+            // associates: unique
+        }
+    }
+
+    async fetchRankMovie(type: RankType, options: FetchOptions<Movie>): Promise<RankMovie[]> {
+        const page = await this.browser.openPage();
+        const result = [] as RankMovie[];
+        try {
+            switch (type) {
+                case "popular":
+                    for (let i = 1; i < 5; i++) {
+                        const url = `${this._host}all?sort=today_views&page=${i}`
+                        await page.goto(url, {waitUntil: 'domcontentloaded'});
+                        const html = await page.content();
+                        const $search = cheerio.load(html);
+                        const movies =  await this._parseRankeMovie($search, type);
+                        if(movies) {
+                            result.push(...movies);
+                        }
+                    }
+                    break
+                case "bestRated":
+                    for (let i = 1; i < 5; i++) {
+                        const url = `${this._host}hot?page=${i}`
+                        await page.goto(url, {waitUntil: 'domcontentloaded'});
+                        const html = await page.content();
+                        const $search = cheerio.load(html);
+                        const movies =  await this._parseRankeMovie($search, type);
+                        if(movies) {
+                            result.push(...movies);
+                        }
+                    }
+                    break
+            }
+            return result;
+        } catch (e) {
+            return result;
+        }finally {
+            await page.close();
+        }
+    }
+
+    private async _parseRankeMovie($: cheerio.CheerioAPI, type: MovieListType): Promise<RankMovie[] | undefined> {
+        return  $('.vid-items .item')
+            .map((_, el) => {
+                const howMuchDays = $(el).find('.meta > div').text().trim();
+                return {
+                    sn: extractFC2OrCode($(el).find('.code').text().trim()),
+                    thumbUrl: $(el).find('.image > img').attr('src')?.trim(),
+                    title:    $(el).find('.title').text().trim(),
+                    releaseDate: parseRelativeDay(howMuchDays as string),
+                    type: type,
+                    provider: 'missav'
+                } as RankMovie
+            })
+            .get()
+            .filter(Boolean);
     }
 }

@@ -4,6 +4,9 @@ import {Config} from "../../config";
 import axios from 'axios';
 import * as cheerio from "cheerio";
 import {extractAmateurCode, extractCode, extractFC2} from "../../common/utils";
+import * as opencc from "opencc-js"
+
+const t2s   = opencc.Converter({ from: 'tw', to: 'cn' })
 
 interface ActorSearchResult {
     homepage: string;
@@ -222,6 +225,11 @@ export class JavbusProvider implements IProvider {
             }
         });
 
+        info.genres = $('span.genre > label > a').map((_, element) => {
+            const genre = $(element).text().trim();
+            return t2s(genre);
+        }).get().filter(Boolean)
+
         // Actors
         $('div.star-name').each((_, element) => {
             const actorName = $(element).find('a').attr('title');
@@ -229,6 +237,20 @@ export class JavbusProvider implements IProvider {
                 info.actors!.push(actorName);
             }
         });
+
+        const associates = $('#related-waterfall .movie-box').map((_, el) => {
+                const href = $(el).attr('href');
+                if (!href) return null;
+                // 2. 解析 pathname 并取最后一段
+                try {
+                    const pathname = new URL(href).pathname; // "/REBD-951"
+                    return extractCode(pathname.split('/').pop()!);        // "REBD-951"
+                } catch {
+                    return null;
+                }
+            })
+            .get().filter(Boolean);
+        info.associates = [...new Set(associates)];
 
         // magnetUrl
         const script = $('body > script:nth-child(9)').html();

@@ -217,7 +217,7 @@ export class JavlibProvider implements IProvider {
         try {
             let maxPages = 10;
             if (type === 'popular') {
-                maxPages = 1; // 热门只有一页
+                return []
             }
 
             for (let page = 1; page <= maxPages && rankMovies.length < limit; page++) {
@@ -229,9 +229,6 @@ export class JavlibProvider implements IProvider {
                         break;
                     case 'mostWanted':
                         url = `vl_mostwanted.php?model=1&page=${page}`;
-                        break;
-                    case 'popular':
-                        url = ``;
                         break;
                     default:
                         continue;
@@ -261,11 +258,6 @@ export class JavlibProvider implements IProvider {
 
                     rankMovies.push(rankMovie);
                 });
-
-                // 如果是热门类型，只处理一页
-                if (type === 'popular') {
-                    break;
-                }
             }
         } catch (error) {
             console.error('Error fetching rank movies from JavLib:', error);

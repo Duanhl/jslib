@@ -112,7 +112,7 @@ export class Config extends EventEmitter {
             mankoHost: 'https://quickmessenger.org',
             javbusHost: 'https://www.fanbus.ink/',
             javlibHost: 'https://www.y94i.com/cn',
-            missavHost: 'https://missav123.to/cn/',
+            missavHost: 'https://javxx.com/ja/',
         } as ConfigData;
         try {
             if (fs.existsSync(this.configPath)) {

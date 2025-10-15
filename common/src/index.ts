@@ -30,12 +30,11 @@ export interface Movie {
     series?: string;
     score?: string;
     wanted?: number;
-    liked?: number;
     location?: string;
     coled?: number;
 
     genres?: string[];
-    thumbUrl?: string;
+    associates?: string[];
     coverUrl?: string;
     previewImages?: string[];
     players?: string[];

@@ -10,6 +10,8 @@ import {RankType} from "./provider/provider";
 import {isBlacked, RankMovie} from "./types";
 import {Config} from "../config";
 import {isUndefinedOrNull} from "../common/types";
+import {MissavProvider} from "./provider/missav";
+import {extractFC2OrCode} from "../common/utils";
 
 
 export class SyncService implements ISyncService {
@@ -19,12 +21,13 @@ export class SyncService implements ISyncService {
                 private readonly javbusProvider: JavbusProvider,
                 private readonly movieService: MovieService,
                 private readonly shtService: ShtService,
+                private readonly missavProvider: MissavProvider,
                 private readonly torrentService: TorrentService) {
     }
 
     async syncMovie(args: { sn: string; }): Promise<Movie> {
         const {sn} = args;
-        const providers = [this.javbusProvider, this.javlibProvider, this.mankoProvider];
+        const providers = [this.javbusProvider, this.javlibProvider, this.mankoProvider, this.missavProvider];
         const promises = providers.map(provider => provider.fetchMovie(sn));
         const results = await Promise.allSettled(promises);
 
@@ -130,6 +133,7 @@ export class SyncService implements ISyncService {
         const allPromises = [
             this.javlibProvider.fetchRankMovie(type, {start, end}),
             this.mankoProvider.fetchRankMovie(type, {start, end}),
+            this.missavProvider.fetchRankMovie(type, {start, end}),
         ]
         const allResults = await Promise.allSettled(allPromises);
         const data = [] as RankMovie[];
@@ -137,8 +141,11 @@ export class SyncService implements ISyncService {
         for (const result of allResults) {
             if (result.status === 'fulfilled' && result.value) {
                 for (const movie of result.value) {
+                    if(!movie.sn) {
+                        continue
+                    }
                     // filter duplicate
-                    if (!isBlacked(movie.sn!) && !exists.has(movie.sn!) && !movie.sn?.includes('membership')) {
+                    if (!isBlacked(movie.sn!) && !exists.has(movie.sn!) && extractFC2OrCode(movie.sn!)) {
                         data.push(movie);
                         exists.add(movie.sn!);
                     }

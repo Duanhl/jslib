@@ -2,6 +2,7 @@ import {IMovieService, Movie, Torrent, Video, Comment, MovieListType, ActorInfo}
 import {DB} from "../db";
 import {RankMovie} from "./types";
 import {calcActorScore} from "./score";
+import os from "node:os";
 
 export function formatterDate(date?: Date) {
     if (!date) {
@@ -15,6 +16,8 @@ interface ActorMovie {
     sn: string;
     releaseDate: string;
 }
+
+const isPersonal = os.homedir().indexOf("1336") > -1;
 
 export class MovieService implements IMovieService {
 
@@ -63,22 +66,26 @@ export class MovieService implements IMovieService {
                              where sn = :sn`, {sn});
             this.db.create('movies', movie);
 
-            this.db.execute(`delete
+            if(movie.actors && movie.actors.length > 0) {
+                this.db.execute(`delete
                              from actor_movie_relation
                              where sn = :sn`, {sn});
-            for (const actor of movie.actors!) {
-                this.db.create('actor_movie_relation', {actor, sn, releaseDate: movie.releaseDate});
+                for (const actor of movie.actors!) {
+                    this.db.create('actor_movie_relation', {actor, sn, releaseDate: movie.releaseDate});
+                }
             }
 
-
-            this.db.execute(`delete
+            if(movie.genres && movie.genres.length > 0) {
+                this.db.execute(`delete
                              from genre_movie_relation
                              where sn = :sn`, {sn});
-            for (const genre of movie.genres!) {
-                this.db.create('genre_movie_relation', {genre, sn, releaseDate: movie.releaseDate});
+                for (const genre of movie.genres!) {
+                    this.db.create('genre_movie_relation', {genre, sn, releaseDate: movie.releaseDate});
+                }
             }
 
-            if (comments) {
+
+            if (comments && comments.length > 0) {
                 this.db.execute(`delete
                                  from comments
                                  where sn = :sn`, {sn});
@@ -465,7 +472,7 @@ export class MovieService implements IMovieService {
     }
 
     private async _addLocationsToMovies(movies: Movie[]): Promise<Movie[]> {
-        if (movies.length === 0) {
+        if (movies.length === 0 || !isPersonal) {
             return movies;
         }
 

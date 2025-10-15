@@ -10,6 +10,7 @@ import {MovieService} from "./movie";
 import {JavlibProvider} from "./provider/javlib";
 import {JavbusProvider} from "./provider/javbus";
 import {Manko} from "./provider/manko";
+import {MissavProvider} from "./provider/missav";
 
 
 describe('Sync Form', () => {
@@ -22,6 +23,8 @@ describe('Sync Form', () => {
     const javlib = new JavlibProvider(config);
     const javbus = new JavbusProvider(config);
     const manko = new Manko(config);
+    const missavProvider = new MissavProvider(config, browserService);
+
 
     const db = new DB(config.dbpath);
     const shtService = new ShtService(db);
@@ -30,16 +33,16 @@ describe('Sync Form', () => {
     const movieService = new MovieService(db);
 
     const syncService = new SyncService(shtScrapy, javlib, manko, javbus,
-        movieService, shtService, torrentService);
+        movieService, shtService, missavProvider, torrentService);
 
 
     describe('sync thread', () => {
         it('sync thread', async () => {
             const options = [
-                {form: 2, start: 1, end: 2, syncDetails: true},
-                {form: 36, start: 1, end: 2, syncDetails: true},
-                {form: 103, start: 1, end: 2, syncDetails: true},
-                {form: 95, start: 1, end: 6, syncDetails: false},
+                {form: 2, start: 1, end: 3, syncDetails: true},
+                {form: 36, start: 1, end: 3, syncDetails: true},
+                {form: 103, start: 1, end: 3, syncDetails: true},
+                {form: 95, start: 1, end: 10, syncDetails: false},
             ]
 
             await syncService.syncSht(options);

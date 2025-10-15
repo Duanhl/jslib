@@ -20,11 +20,23 @@ export function extractFC2(text: string): string | undefined {
     if (fc2Match) {
         return `FC2PPV-${fc2Match[3]}`;
     }
+    const fc2Match2 = text.match(/\b(FC)-?(\d{5,8})\b/i)
+    if (fc2Match2) {
+        return `FC2PPV-${fc2Match2[2]}`;
+    }
+    return undefined;
+}
+
+export function extractT38(text: string): string | undefined {
+    const t38Match = text.match(/\b(T38)-?(\d{3,4})\b/i);
+    if(t38Match) {
+        return `T38-${t38Match[2]}`;
+    }
     return undefined;
 }
 
 export function extractFC2OrCode(text: string): string | undefined {
-    return extractFC2(text) || extractAmateurCode(text) || extractCode(text);
+    return extractFC2(text) || extractAmateurCode(text) || extractT38(text) || extractCode(text);
 }
 
 export function pickDate (str: string): string | undefined {
@@ -62,6 +74,39 @@ export function decode91(e: string): string {
 
     // Buffer 浏览器可用 Uint8Array + TextDecoder 代替
     return Buffer.from(bytes).toString('utf-8');
+}
+
+
+export function parseRelativeDay(str = '') {
+    const now = new Date();
+
+    // 1. 提取所有数字+单位
+    const tokens = str.match(/(\d+)\s*(周|天|日|小时|時|分钟|分|秒)/g) || [];
+    const delta = { w: 0, d: 0, h: 0, m: 0, s: 0 };
+
+    tokens.forEach(t => {
+        // @ts-ignore
+        const [, n, unit] = t.match(/(\d+)\s*(.+)/);
+        switch (unit[0]) {
+            case '周': delta.w = +n; break;
+            case '天':
+            case '日': delta.d = +n; break;
+            case '小':
+            case '時': delta.h = +n; break;
+            case '分': delta.m = +n; break;
+            case '秒': delta.s = +n; break;
+        }
+    });
+
+    // 2. 计算目标日期（忽略时分秒，只“向下”取整天）
+    const target = new Date(now);
+    target.setDate(target.getDate()
+        - delta.w * 7
+        - delta.d
+        - (delta.h > 0 || delta.m > 0 || delta.s > 0 ? 1 : 0)); // 只要有余数就算前一天
+
+    // 3. 格式化
+    return target.toISOString().slice(0, 10);
 }
 
 // naming.ts

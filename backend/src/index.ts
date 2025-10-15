@@ -14,6 +14,7 @@ import {ShtProvider} from "./services/provider/sht";
 import {BrowserService} from "./services/provider/browser";
 import * as fs from "node:fs";
 import {registerJob} from "./common/scheduler";
+import {MissavProvider} from "./services/provider/missav";
 
 const PORT = 3123;
 
@@ -32,9 +33,10 @@ class Server {
         const javlib = new JavlibProvider(config);
         const javbus = new JavbusProvider(config);
         const manko = new Manko(config);
+        const missav = new MissavProvider(config, browserService);
         const shtProvider = new ShtProvider(browserService, config);
         const syncService = new SyncService(shtProvider, javlib, manko, javbus,
-            movieService, shtService, torrentService);
+            movieService, shtService, missav, torrentService);
         const configService = new ConfigService(config);
 
         const app = express();
@@ -45,6 +47,17 @@ class Server {
 
         registerJob("0 0 12 * * *", "sync rank", async () => {
             await syncService.syncRank({type: 'popular', start: 1, end: 2});
+        });
+
+        registerJob("0 0 13 * * *", "sync rank", async () => {
+            const options = [
+                {form: 2, start: 1, end: 2, syncDetails: true},
+                {form: 36, start: 1, end: 2, syncDetails: true},
+                {form: 103, start: 1, end: 2, syncDetails: true},
+                {form: 95, start: 1, end: 6, syncDetails: false},
+            ]
+
+            await syncService.syncSht(options);
         });
 
         app.on('close', () => {
