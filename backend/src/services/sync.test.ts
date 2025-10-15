@@ -36,10 +36,10 @@ describe('Sync Form', () => {
     describe('sync thread', () => {
         it('sync thread', async () => {
             const options = [
-                {form: 2, start: 1, end: 4, syncDetails: true},
-                {form: 36, start: 1, end: 4, syncDetails: true},
-                {form: 103, start: 1, end: 4, syncDetails: true},
-                {form: 95, start: 1, end: 20, syncDetails: false},
+                {form: 2, start: 1, end: 2, syncDetails: true},
+                {form: 36, start: 1, end: 2, syncDetails: true},
+                {form: 103, start: 1, end: 2, syncDetails: true},
+                {form: 95, start: 1, end: 6, syncDetails: false},
             ]
 
             await syncService.syncSht(options);

@@ -1,5 +1,5 @@
 import {Response} from "../api/api";
-import {IMovieService, ISyncService, IThreadService, ITorrentService} from "@jslib/common";
+import {IConfigService, IMovieService, ISyncService, IThreadService, ITorrentService} from "@jslib/common";
 
 const HOST = process.env.NODE_ENV === "development" ? "http://localhost:3123/api": "/api";
 
@@ -44,3 +44,4 @@ export const threadService = toService<IThreadService>('thread');
 export const movieService = toService<IMovieService>('movie');
 export const torrentService = toService<ITorrentService>('torrent');
 export const syncService = toService<ISyncService>('sync');
+export const configService = toService<IConfigService>('config');

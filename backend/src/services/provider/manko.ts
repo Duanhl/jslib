@@ -48,10 +48,13 @@ const TOP_RATED = "top_rated";
 const MOST_POPULAR = "most_popular";
 
 export class Manko implements IProvider {
-    private readonly host;
+    private host;
 
     constructor(config: Config) {
         this.host = config.mankoHost;
+        config.on('configChanged', (data) => {
+            this.host = data.mankoHost;
+        })
     }
 
     async fetchMovie(keyword: string): Promise<Movie | undefined> {

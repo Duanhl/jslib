@@ -1,5 +1,5 @@
 import {describe, it} from "vitest";
-import {decode91, extractCode, extractFC2} from "./utils";
+import {decode91, extractAmateurCode, extractCode, extractFC2} from "./utils";
 
 
 describe('utils tests', () => {
@@ -24,9 +24,20 @@ describe('utils tests', () => {
             'fc2ppv-2589532【千華缭乱&未步奈奈】传说的开始 SSS级超级偶像惊艳降临 （FC2PPV-2589532）',
             'BF-744 [自提征用]辣妹家庭教师 小野坂唯香',
             '这条里没有编号',
+            "FC2-PPV-4775424 - 限定3天♀179 可爱白辣妹"
         ];
 
         console.log(inputs.map(input => extractFC2(input)));
+    })
+
+    it('extractAmateurCode', () => {
+        const inputs: string[] = [
+            '200GANA-3282',
+            '259LUXU-1854 (无码泄露)',
+            'BF-744 [自提征用]辣妹家庭教师 小野坂唯香',
+        ];
+
+        console.log(inputs.map(input => extractAmateurCode(input)));
     })
 
     it('test decode', () => {

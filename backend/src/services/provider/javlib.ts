@@ -4,20 +4,26 @@ import {Comment, Movie} from "@jslib/common";
 import {RankMovie} from "../types";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import {extractAmateurCode, extractCode, extractFC2} from "../../common/utils";
 
 export class JavlibProvider implements IProvider {
-    private readonly host: string;
-    private readonly axiosInstance;
+    private axiosInstance;
 
-    constructor(config: Config) {
-        this.host = config.javlibHost;
-        this.axiosInstance = axios.create({
-            baseURL: this.host,
-            headers: {
-                "Accept-Language": "zh-CN,zh;q=0.9",
-                "referer": this.host
-            }
-        });
+    constructor(readonly config: Config) {
+
+        const createAxios = (host: string) => {
+            return axios.create({
+                baseURL: host,
+                headers: {
+                    "Accept-Language": "zh-CN,zh;q=0.9",
+                    "referer": config.javlibHost
+                }
+            })
+        }
+        this.axiosInstance = createAxios(config.javlibHost)
+        config.on('configChanged', (data) => {
+            this.axiosInstance = createAxios(data.javlibHost);
+        })
     }
 
     private async _requestWithRandomDelay(url: string): Promise<string> {
@@ -148,9 +154,15 @@ export class JavlibProvider implements IProvider {
     }
 
     async fetchMovie(keyword: string): Promise<Movie | undefined> {
+        if(extractFC2(keyword) || extractAmateurCode(keyword)) {
+            return
+        }
+        if(!extractCode(keyword)) {
+            return
+        }
         try {
             // 首先通过搜索ID获取电影主页
-            const searchUrl = `${this.host}/vl_searchbyid.php?keyword=${encodeURIComponent(keyword)}`;
+            const searchUrl = `vl_searchbyid.php?keyword=${encodeURIComponent(keyword)}`;
             const searchHtml = await this._requestWithRandomDelay(searchUrl);
             const $search = cheerio.load(searchHtml);
 
@@ -164,7 +176,7 @@ export class JavlibProvider implements IProvider {
                 if (sn === keyword && !selected) {
                     const href = $element.find('a').attr('href');
                     if (href) {
-                        movieHomepage = this.host + href.substring(2); // 去掉开头的../
+                        movieHomepage = href.substring(2); // 去掉开头的../
 
                         // 特殊前缀处理
                         if (!sn.startsWith('ABF') && !sn.startsWith('MIDV')) {
@@ -213,13 +225,13 @@ export class JavlibProvider implements IProvider {
 
                 switch (type) {
                     case 'bestRated':
-                        url = `${this.host}/vl_bestrated.php?model=1&page=${page}`;
+                        url = `vl_bestrated.php?model=1&page=${page}`;
                         break;
                     case 'mostWanted':
-                        url = `${this.host}/vl_mostwanted.php?model=1&page=${page}`;
+                        url = `vl_mostwanted.php?model=1&page=${page}`;
                         break;
                     case 'popular':
-                        url = `${this.host}/`;
+                        url = ``;
                         break;
                     default:
                         continue;
@@ -244,7 +256,7 @@ export class JavlibProvider implements IProvider {
 
                     const href = $element.find('a').attr('href');
                     if (href) {
-                        rankMovie.homepage = this.host + href.substring(2);
+                        rankMovie.homepage = href.substring(2);
                     }
 
                     rankMovies.push(rankMovie);

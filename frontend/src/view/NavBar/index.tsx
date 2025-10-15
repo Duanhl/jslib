@@ -58,9 +58,11 @@ const Navbar = () => {
                     />
                 </div>
                 <Space size={16} className="user-actions">
-                    <Button type="primary" icon={<UserOutlined />}>
-                        设置
-                    </Button>
+                    <Link to={"/settings"}>
+                        <Button type="primary" icon={<UserOutlined />}>
+                            设置
+                        </Button>
+                    </Link>
                 </Space>
             </div>
         </nav>

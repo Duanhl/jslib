@@ -9,13 +9,16 @@ import {Thread} from "@jslib/common";
 
 export class ShtProvider implements IProvider {
 
-    private readonly host: string;
+    private host: string;
     private readonly isTracing;
 
     constructor(private browserService: BrowserService,
                 config: Config) {
         this.host = config.shtHost;
         this.isTracing = config.isShtTracing;
+        config.on('configChanged', (data) => {
+            this.host = data.shtHost;
+        })
     }
 
     async fetchThread(url: string, form: string | number): Promise<Thread | undefined> {

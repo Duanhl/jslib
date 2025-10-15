@@ -1,6 +1,6 @@
 import express, {Express} from 'express';
 import cors from 'cors';
-import {Config} from "./config";
+import {Config, ConfigService} from "./config";
 import path from "node:path";
 import {DB} from "./db";
 import {ShtService} from "./services/sht";
@@ -13,6 +13,7 @@ import {SyncService} from "./services/sync";
 import {ShtProvider} from "./services/provider/sht";
 import {BrowserService} from "./services/provider/browser";
 import * as fs from "node:fs";
+import {registerJob} from "./common/scheduler";
 
 const PORT = 3123;
 
@@ -34,12 +35,17 @@ class Server {
         const shtProvider = new ShtProvider(browserService, config);
         const syncService = new SyncService(shtProvider, javlib, manko, javbus,
             movieService, shtService, torrentService);
+        const configService = new ConfigService(config);
 
         const app = express();
         app.use(cors())
         app.use(express.json());
 
-        this.initRoutes(app, shtService, movieService, torrentService, syncService)
+        this.initRoutes(app, shtService, movieService, torrentService, syncService, configService)
+
+        registerJob("0 0 12 * * *", "sync rank", async () => {
+            await syncService.syncRank({type: 'popular', start: 1, end: 2});
+        });
 
         app.on('close', () => {
             db.dispose()
@@ -54,11 +60,12 @@ class Server {
     }
 
     private initRoutes(app: Express, shtService: ShtService, movieService: MovieService, torrentService: TorrentService,
-                       syncService: SyncService): void {
+                       syncService: SyncService, configService: ConfigService): void {
         this.registerRoute(app, 'thread', shtService, ['createOrUpdate'])
         this.registerRoute(app, 'movie', movieService, ['videoDetails'])
         this.registerRoute(app, 'torrent', torrentService, ['saveTorrent'])
         this.registerRoute(app, 'sync', syncService, ['syncSht']);
+        this.registerRoute(app, 'config', configService )
 
         this.videoHandler(app, movieService);
         const staticPath = path.resolve(__dirname, '../dist/static');
@@ -70,7 +77,7 @@ class Server {
     }
 
     private initConfig(): Config {
-        return Config.defaultConfig();
+        return new Config();
     }
 
     private videoHandler(app: Express, movieService: MovieService): void {

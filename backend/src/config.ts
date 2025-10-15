@@ -1,5 +1,8 @@
 import path from "node:path";
 import os from "node:os";
+import * as fs from "node:fs";
+import EventEmitter from "node:events";
+import {ConfigItem, IConfigService} from "@jslib/common";
 
 
 const filterSet = new Set<string>([
@@ -79,42 +82,102 @@ const filterSet = new Set<string>([
     "MXSPS",
 ])
 
-export class Config {
-    constructor(private readonly _dbpath: string,
-                private readonly _dbTracing: boolean,
-                private readonly _shtHost: string,
-                private readonly _shtTracing: boolean,
-                private readonly _mankoHost: string,
-                private readonly _javbusHost: string,
-                private readonly _javlibHost: string) {
+export interface ConfigData {
+    dbpath: string;
+    dbTracing: boolean;
+    shtHost: string;
+    shtTracing: boolean;
+    mankoHost: string;
+    javbusHost: string;
+    javlibHost: string;
+    missavHost: string;
+}
+
+export class Config extends EventEmitter {
+    private _data: ConfigData;
+    private readonly configPath: string;
+
+    constructor(configPath?: string) {
+        super();
+        this.configPath = configPath || path.join(os.homedir(), '.jslib', 'config.json');
+        this._data = this.loadConfig();
+    }
+
+    private loadConfig(): ConfigData {
+        const defaultConfig = {
+            dbpath: path.join(os.homedir(), '.jslib', 'lib.db'),
+            dbTracing: true,
+            shtHost: 'https://espa.3n852.net/',
+            shtTracing: false,
+            mankoHost: 'https://quickmessenger.org',
+            javbusHost: 'https://www.fanbus.ink/',
+            javlibHost: 'https://www.y94i.com/cn',
+            missavHost: 'https://missav123.to/cn/',
+        } as ConfigData;
+        try {
+            if (fs.existsSync(this.configPath)) {
+                const data = fs.readFileSync(this.configPath, 'utf-8');
+                return {...defaultConfig, ...JSON.parse(data)};
+            }
+        } catch (error) {
+            console.warn('Failed to load config, using defaults:', error);
+        }
+
+        return defaultConfig;
+    }
+
+    private saveConfig(): void {
+        try {
+            const dir = path.dirname(this.configPath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(this.configPath, JSON.stringify(this._data, null, 2));
+            this.emit('configChanged', this._data);
+        } catch (error) {
+            console.error('Failed to save config:', error);
+        }
+    }
+
+    get data(): ConfigData {
+        return { ...this._data };
     }
 
     get dbpath(): string {
-        return this._dbpath;
+        return this._data.dbpath;
     }
 
     get isDbTracing(): boolean {
-        return this._dbTracing;
+        return this._data.dbTracing;
     }
 
     get shtHost(): string {
-        return this._shtHost;
+        return this._data.shtHost;
     }
 
     get isShtTracing(): boolean {
-        return this._shtTracing
+        return this._data.shtTracing;
     }
 
     get mankoHost(): string {
-        return this._mankoHost;
+        return this._data.mankoHost;
     }
 
     get javbusHost(): string {
-        return this._javbusHost;
+        return this._data.javbusHost;
     }
 
     get javlibHost(): string {
-        return this._javlibHost;
+        return this._data.javlibHost;
+    }
+
+    get missavHost(): string {
+        return this._data.missavHost;
+    }
+
+    updateConfig(updates: Partial<ConfigData>): void {
+        this._data = { ...this._data, ...updates };
+        this.saveConfig();
     }
 
     static get blackList(): Set<string> {
@@ -122,14 +185,76 @@ export class Config {
     }
 
     static defaultConfig(): Config {
-        return new Config(
-            path.join(os.homedir(), '.jslib/lib.db'),
-            true,
-            'https://espa.3n852.net/',
-            false,
-            "https://quickmessenger.org",
-            "https://www.fanbus.ink/",
-            "https://www.y94i.com/cn"
-        )
+        return new Config();
     }
 }
+
+
+export class ConfigService implements IConfigService {
+    private config: Config;
+
+    constructor(config?: Config) {
+        this.config = config || new Config();
+    }
+
+    async list(): Promise<ConfigItem[]> {
+        const data = this.config.data;
+
+        return [
+            {
+                key: 'dbpath',
+                value: data.dbpath,
+                description: '数据库文件路径'
+            },
+            {
+                key: 'dbTracing',
+                value: data.dbTracing,
+                description: '是否启用数据库调试日志'
+            },
+            {
+                key: 'shtHost',
+                value: data.shtHost,
+                description: 'SHT服务主机地址'
+            },
+            {
+                key: 'shtTracing',
+                value: data.shtTracing,
+                description: '是否启用SHT服务调试日志'
+            },
+            {
+                key: 'mankoHost',
+                value: data.mankoHost,
+                description: 'Manko Host'
+            },
+            {
+                key: 'javbusHost',
+                value: data.javbusHost,
+                description: 'JavBus Host'
+            },
+            {
+                key: 'javlibHost',
+                value: data.javlibHost,
+                description: 'JavLib Host'
+            },
+            {
+                key: 'missavHost',
+                value: data.missavHost,
+                description: 'MissAv Host'
+            }
+        ];
+    }
+
+    async update(args: {key: string, value: string | boolean | number}): Promise<void> {
+        const validKeys = ['dbpath', 'dbTracing', 'shtHost', 'shtTracing', 'mankoHost', 'javbusHost', 'javlibHost', 'missavHost'];
+
+        if (!validKeys.includes(args.key)) {
+            throw new Error(`Invalid config key: ${args.key}`);
+        }
+
+        const updateData: any = {};
+        updateData[args.key] = args.value;
+
+        this.config.updateConfig(updateData);
+    }
+}
+

@@ -128,3 +128,14 @@ export interface ISyncService {
     syncStar(args: { name: string }): Promise<Movie[] | string>;
 }
 
+export interface ConfigItem {
+    key: string;
+    value: string | boolean | number;
+    description?: string;
+}
+
+export interface IConfigService {
+    list(): Promise<ConfigItem[]>;
+    update(args: {key: string, value: string | boolean | number}): Promise<void>;
+}
+

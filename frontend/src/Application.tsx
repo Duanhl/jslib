@@ -7,7 +7,6 @@ import 'antd/dist/reset.css';
 import Navbar from "./view/NavBar";
 import MovieSection, {MovieSectionWrapper} from "./view/MovieSection";
 import CategoryPage from "./view/CategoryPage";
-import Settings from "./view/Settings";
 import MovieDetail from "./view/MovieDetail";
 import Actor from "./view/Actor";
 import ActorList from "./view/ActorList";
@@ -15,6 +14,7 @@ import HighTorrents from "./view/Torrents";
 import VideoList from "./view/VideoList";
 import Threads from "./view/Threads";
 import CategoryTabs from "./view/CategoryTabs";
+import ConfigManager from "./view/Settings";
 
 dayjs.locale('zh-cn');
 
@@ -92,7 +92,7 @@ const Application: React.FC = () => {
 
                         <Route path={'/torrents'} element={<HighTorrents/>}/>
                         <Route path={'/videos'} element={<VideoList/>}/>
-                        <Route path="/settings" element={<Settings/>}/>
+                        <Route path="/settings" element={<ConfigManager/>}/>
                     </Routes>
                 </main>
             </div>

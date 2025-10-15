@@ -3,6 +3,7 @@ import {ActorInfo, Movie, Torrent} from "@jslib/common";
 import {Config} from "../../config";
 import axios from 'axios';
 import * as cheerio from "cheerio";
+import {extractAmateurCode, extractCode, extractFC2} from "../../common/utils";
 
 interface ActorSearchResult {
     homepage: string;
@@ -18,25 +19,33 @@ interface MovieSearchResult {
 
 export class JavbusProvider implements IProvider {
 
-    private readonly host: string;
-    private readonly axiosInstance;
+    private host: string;
+    private axiosInstance;
     constructor(config: Config) {
         this.host = config.javbusHost;
 
-        this.axiosInstance = axios.create({
-            baseURL: this.host,
-            headers: {
-                "Accept-Language": "zh-CN,zh;q=0.9",
-                "priority": "u=0, i",
-                "referer": this.host,
-                "Sec-Fetch-Site": "none",
-                "sec-ch-ua": "Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
-                "cache-control": "max-age=0",
-                "Cookie": "existmag=mag; PHPSESSID=lf4334djgca44jmrv1cl5k6db6"
-            },
-            maxRedirects: 0,
-            validateStatus: (status: number) => status < 400
-        });
+        const createAxios = (host: string) => {
+            return axios.create({
+                baseURL: host,
+                headers: {
+                    "Accept-Language": "zh-CN,zh;q=0.9",
+                    "priority": "u=0, i",
+                    "referer": host,
+                    "Sec-Fetch-Site": "none",
+                    "sec-ch-ua": "Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Google Chrome\";v=\"138\"",
+                    "cache-control": "max-age=0",
+                    "Cookie": "existmag=mag; PHPSESSID=lf4334djgca44jmrv1cl5k6db6"
+                },
+                maxRedirects: 0,
+                validateStatus: (status: number) => status < 400
+            });
+        }
+        this.axiosInstance = createAxios(this.host);
+
+        config.on("configChanged", (data) => {
+            this.host = data.javlibHost;
+            this.axiosInstance = createAxios(this.host);
+        })
     }
 
     private async _requestWithRetry(url: string, maxAttempts: number = 3): Promise<string> {
@@ -279,6 +288,12 @@ export class JavbusProvider implements IProvider {
 
 
     async fetchMovie(keyword: string): Promise<Movie | undefined> {
+        if(extractFC2(keyword) || extractAmateurCode(keyword)) {
+            return
+        }
+        if(!extractCode(keyword)) {
+            return
+        }
         try {
             return await this._getMovieInfoByURL(`${this.host}${keyword}`);
         } catch (error: any) {
