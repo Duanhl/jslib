@@ -3,9 +3,9 @@ import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {Card, Col, message, Pagination, Row, Space, Typography} from 'antd';
 import './index.css';
 import {isUndefinedOrNull} from "../../common/types.ts";
-import {extractStandardJavSn, getDmmThumbURL} from "../../common/utils.ts";
+import {getDmmThumbURL} from "../../common/utils.ts";
 import {PlayCircleOutlined} from "@ant-design/icons";
-import {Movie, MovieListType, Video} from "@jslib/common";
+import {extractFC2OrCode, Movie, MovieListType, Video} from "@jslib/common";
 import {movieService} from "../../common/proxy.ts";
 
 const {Title} = Typography;
@@ -14,7 +14,7 @@ export const MovieCard = (props: { movie: Movie, magnet?: string, video?: Video 
     const {movie, magnet, video} = props;
 
     const cover = getDmmThumbURL(movie.sn, movie.coverUrl);
-    const jvn = extractStandardJavSn(movie.sn)
+    const jvn = extractFC2OrCode(movie.sn)
 
     const onContextClick = async (e) => {
         e.preventDefault();
@@ -64,7 +64,7 @@ export const MovieCard = (props: { movie: Movie, magnet?: string, video?: Video 
                 </Link>)
             )
         } else {
-            if (jvn.isJavSn) {
+            if (jvn) {
                 return (<Link to={`/movie/${movie.sn}`} className={"movie-link"}>
                     {renderItem()}
                 </Link>)

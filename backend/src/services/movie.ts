@@ -239,11 +239,12 @@ export class MovieService implements IMovieService {
         if (previews) {
             movie.previewImages = JSON.parse(previews.replace("{", "[").replace("}", "]"));
         }
-
         const players = movie.players as unknown as string;
         if (players) {
             movie.players = JSON.parse(players.replace("{", "[").replace("}", "]"));
         }
+        const associates = movie.associates as unknown as string || '[]';
+        movie.associates = JSON.parse(associates.replace("{", "[").replace("}", "]"));
 
         // 获取种子信息，按发布日期降序排列
         const torrents = this.db.query<Torrent>(

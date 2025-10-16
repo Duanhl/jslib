@@ -10,7 +10,7 @@ export function extractCode(text: string): string | undefined {
     return m ? `${m[1]}-${m[2]}` : undefined;
 }
 
-export function extractAmateurCode(text: String): string | undefined {
+export function extractAmateurCode(text: string): string | undefined {
     const m = text.match(/\b(\d{3,4})([A-Z]{1,6})-?(\d{2,5})\b/);
     return m ? `${m[1]}${m[2]}-${m[3]}` : undefined;
 }

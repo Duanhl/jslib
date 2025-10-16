@@ -5,6 +5,9 @@ import {Config} from "../../config";
 import * as cheerio from "cheerio";
 import {BrowserService} from "./browser";
 import {RankMovie} from "../types";
+import * as opencc from "opencc-js";
+
+const t2s   = opencc.Converter({ from: 'tw', to: 'cn' })
 
 export class MissavProvider implements IProvider {
     private _host: string | undefined;
@@ -56,15 +59,27 @@ export class MissavProvider implements IProvider {
             });
             result[label] = values.length === 1 ? values[0] : values; // 单值直接字符串，多值保持数组
         });
+
+        let coverUrl = undefined;
+        $('#player').each((_, el) => {
+            const url = $(el).attr('cover');
+            if(url && url.indexOf('cover') > -1) {
+                coverUrl = url;
+            }
+        })
         if(!result['コード']) {
             return
         }
+        const genres = (result['ジャンル'] as string[]) ?.map((item) => {
+            return t2s(item);
+        });
         return {
             sn: extractFC2OrCode(result['コード'] as string)!,
             title: $('#video-info .title').text(),
+            coverUrl,
             releaseDate: result['発売日'] as string,
             duration: result['再生時間'] as string,
-            genres: result['ジャンル'] as string[],
+            genres,
             maker: result['メーカー'] as string,
             series: result['タグ'] as string,
             actors: typeof result['女優'] === 'string' ? [result['女優']] : result['女優'] as string[],

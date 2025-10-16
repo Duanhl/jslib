@@ -12,6 +12,7 @@ import {Config} from "../config";
 import {isUndefinedOrNull} from "../common/types";
 import {MissavProvider} from "./provider/missav";
 import {extractFC2OrCode} from "../common/utils";
+import logger from "../common/logs";
 
 
 export class SyncService implements ISyncService {
@@ -69,14 +70,18 @@ export class SyncService implements ISyncService {
         movie.previewImages = previewImages;
         movie.comments = comments;
 
-        await this.movieService.createMovie(movie);
-        for (const torrent of torrents) {
-            await this.torrentService.saveTorrent(torrent)
+        if(movie.sn) {
+            await this.movieService.createMovie(movie);
+            for (const torrent of torrents) {
+                await this.torrentService.saveTorrent(torrent)
+            }
+            movie.torrents = torrents;
+            logger.info(`sync movie for ${sn} successfully.`);
+            return movie;
+        } else {
+            logger.info(`sync movie for ${sn} Failed`);
+            return movie;
         }
-        movie.torrents = torrents;
-
-        console.log(`sync movie for ${sn} successfully.`);
-        return movie;
     }
 
 
@@ -130,6 +135,7 @@ export class SyncService implements ISyncService {
 
     async syncRank(args: {type: RankType, start?: number, end?: number}): Promise<RankMovie[]> {
         const {type, start, end} = args;
+        logger.info(`sync rank for ${type}`);
         const allPromises = [
             this.javlibProvider.fetchRankMovie(type, {start, end}),
             this.mankoProvider.fetchRankMovie(type, {start, end}),
@@ -155,6 +161,7 @@ export class SyncService implements ISyncService {
         for (const r of data) {
             await this.movieService.insertRankMovie(r);
         }
+        logger.info(`sync rank rank for ${type} sucessfully. size: ${data.length}`);
         return data
     }
 
@@ -190,14 +197,20 @@ export class SyncService implements ISyncService {
         }
 
         for (const option of options) {
-            await this.shtProvider.fetchThreads(option.form,
-                option.start,
-                option.end,
-                {
-                    needNextLevel: (t) => option.syncDetails,
-                    save: (t: Thread) => save(t, option.form)
-                }
-            )
+            try {
+                logger.info(`sync sht ${JSON.stringify(option, null, 0)}`);
+                const threads = await this.shtProvider.fetchThreads(option.form,
+                    option.start,
+                    option.end,
+                    {
+                        needNextLevel: (t) => option.syncDetails,
+                        save: (t: Thread) => save(t, option.form)
+                    }
+                )
+                logger.info(`sync sht successfully, size: ${threads.length}`);
+            } catch (error: any) {
+                logger.error(`sync sht failed: ${error.message}}`);
+            }
         }
     }
 }

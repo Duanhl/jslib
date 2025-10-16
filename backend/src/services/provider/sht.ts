@@ -6,6 +6,7 @@ import {BrowserService} from "./browser";
 import {FetchOptions, IProvider} from "./provider";
 import {Config} from "../../config";
 import {Thread} from "@jslib/common";
+import logger from "../../common/logs";
 
 export class ShtProvider implements IProvider {
 
@@ -22,8 +23,9 @@ export class ShtProvider implements IProvider {
     }
 
     async fetchThread(url: string, form: string | number): Promise<Thread | undefined> {
-        const page = await this.browserService.openPage();
+        let page;
         try {
+            page = await this.browserService.openPage();
             let isCookieLoad = false;
             await page.goto(url);
             if (!isCookieLoad) {
@@ -35,8 +37,13 @@ export class ShtProvider implements IProvider {
 
             const html = await page.content();
             return this.parseThread(html, typeof form === 'number' ? form : parseInt(form, 10));
+        } catch (e: any) {
+            logger.error(`fetch sht error: ${e}`);
+            return ;
         } finally {
-            await page.close();
+            if(page && !page.isClosed()) {
+                await page.close();
+            }
         }
     }
 
@@ -153,9 +160,10 @@ export class ShtProvider implements IProvider {
     }
 
     async fetchThreads(form: string | number, start: number = 1, end: number = 2, options?: FetchOptions<Thread>): Promise<Thread[]> {
-        const page = await this.browserService.openPage();
+        let page;
         const numberForm = typeof form === 'number' ? form : parseInt(form, 10);
         try {
+            page = await this.browserService.openPage();
             let isCookieLoad = false;
             const result: Thread[] = [];
             for (let i = start; i < end; i++) {
@@ -201,8 +209,13 @@ export class ShtProvider implements IProvider {
                 console.log(`fetch done, result has ${result.length} threads`);
             }
             return result;
+        } catch (e: any) {
+            logger.error(`fetch sht failed, error: ${e}`);
+            return [];
         } finally {
-            await page.close();
+            if (page && !page.isClosed()) {
+                await page.close();
+            }
         }
     }
 }

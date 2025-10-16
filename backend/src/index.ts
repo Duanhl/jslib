@@ -15,6 +15,7 @@ import {BrowserService} from "./services/provider/browser";
 import * as fs from "node:fs";
 import {registerJob} from "./common/scheduler";
 import {MissavProvider} from "./services/provider/missav";
+import logger from "./common/logs";
 
 const PORT = 3123;
 
@@ -49,7 +50,7 @@ class Server {
             await syncService.syncRank({type: 'popular', start: 1, end: 2});
         });
 
-        registerJob("0 0 13 * * *", "sync rank", async () => {
+        registerJob("0 0 13 * * *", "sync sht", async () => {
             const options = [
                 {form: 2, start: 1, end: 2, syncDetails: true},
                 {form: 36, start: 1, end: 2, syncDetails: true},
@@ -63,12 +64,13 @@ class Server {
         app.on('close', () => {
             db.dispose()
         });
+
         app.on('error', (err) => {
-            console.log(err);
+            logger.error(`uncaught app error: ${err}`);
         })
 
         app.listen(PORT, '0.0.0.0', () => {
-            console.log(`Server is running on port ${PORT}`)
+            logger.info(`Server is running on port ${PORT}`)
         });
     }
 
@@ -77,7 +79,7 @@ class Server {
         this.registerRoute(app, 'thread', shtService, ['createOrUpdate'])
         this.registerRoute(app, 'movie', movieService, ['videoDetails'])
         this.registerRoute(app, 'torrent', torrentService, ['saveTorrent'])
-        this.registerRoute(app, 'sync', syncService, ['syncSht']);
+        this.registerRoute(app, 'sync', syncService);
         this.registerRoute(app, 'config', configService )
 
         this.videoHandler(app, movieService);

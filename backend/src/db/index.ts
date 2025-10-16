@@ -1,5 +1,6 @@
 import Database, {Statement} from "better-sqlite3";
 import {toCamel} from "../common/utils";
+import logger from "../common/logs";
 
 
 export class DB {
@@ -16,9 +17,9 @@ export class DB {
                 timeout: 5000
             });
 
-            console.log(`db connection successfully in ${this.dbPath}`);
+            logger.info(`db connection successfully in ${this.dbPath}`);
         } catch (error) {
-            console.error(`db connection error: ${error}`);
+            logger.error(`db connection error: ${error}`);
             throw error;
         }
     }
@@ -34,7 +35,7 @@ export class DB {
             this.preparedStatements.set(sql, statement);
             return statement;
         } catch (error) {
-            console.error(`prepareStatement error: ${error}`);
+            logger.error(`prepareStatement error: ${error}`);
             throw error;
         }
     }

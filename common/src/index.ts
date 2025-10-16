@@ -138,3 +138,37 @@ export interface IConfigService {
     update(args: {key: string, value: string | boolean | number}): Promise<void>;
 }
 
+export function extractCode(text: string): string | undefined {
+    const m = text.match(/\b([A-Z]{1,6})-?(\d{2,5})\b/);
+    return m ? `${m[1]}-${m[2]}` : undefined;
+}
+
+export function extractAmateurCode(text: string): string | undefined {
+    const m = text.match(/\b(\d{3,4})([A-Z]{1,6})-?(\d{2,5})\b/);
+    return m ? `${m[1]}${m[2]}-${m[3]}` : undefined;
+}
+
+export function extractFC2(text: string): string | undefined {
+    const fc2Match = text.match(/\b(FC2)-?(PPV)-?(\d{5,8})\b/i);
+    if (fc2Match) {
+        return `FC2PPV-${fc2Match[3]}`;
+    }
+    const fc2Match2 = text.match(/\b(FC)-?(\d{5,8})\b/i)
+    if (fc2Match2) {
+        return `FC2PPV-${fc2Match2[2]}`;
+    }
+    return undefined;
+}
+
+export function extractT38(text: string): string | undefined {
+    const t38Match = text.match(/\b(T38)-?(\d{3,4})\b/i);
+    if(t38Match) {
+        return `T38-${t38Match[2]}`;
+    }
+    return undefined;
+}
+
+export function extractFC2OrCode(text: string): string | undefined {
+    return extractFC2(text) || extractAmateurCode(text) || extractT38(text) || extractCode(text);
+}
+
