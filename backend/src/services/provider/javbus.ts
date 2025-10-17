@@ -5,6 +5,7 @@ import axios from 'axios';
 import * as cheerio from "cheerio";
 import {extractAmateurCode, extractCode, extractFC2} from "../../common/utils";
 import * as opencc from "opencc-js"
+import logger from "../../common/logs";
 
 const t2s   = opencc.Converter({ from: 'tw', to: 'cn' })
 
@@ -319,7 +320,7 @@ export class JavbusProvider implements IProvider {
         try {
             return await this._getMovieInfoByURL(`${this.host}${keyword}`);
         } catch (error: any) {
-            console.error(`Error fetching movie [${keyword}], error: ${error.message}`);
+            logger.error(`Error fetching movie [${keyword}] by javbus, error: ${error.message}`);
             return undefined;
         }
     }
@@ -352,15 +353,15 @@ export class JavbusProvider implements IProvider {
                         }
                         movies.push(movieInfo);
                     } catch (error: any) {
-                        console.error(`Error fetching movie ${movieResult.sn}:`, error);
+                        logger.error(`Error fetching movie ${movieResult.sn}, ${error.message}`);
                     }
                 } else {
                     movies.push(movieResult as unknown as Movie);
                 }
             }
             return { actor, movies };
-        } catch (error) {
-            console.error('Error fetching actor:', error);
+        } catch (error: any) {
+            logger.error(`Error fetching actor, ${error.message}`);
             return { actor: undefined, movies: [] };
         }
     }

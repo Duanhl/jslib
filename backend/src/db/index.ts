@@ -48,8 +48,8 @@ export class DB {
                 return statement.all(namedParams).map(obj => toCamel(obj as any)) as T[];
             }
             return statement.all([]) as T[];
-        } catch (error) {
-            console.error(`query error: ${error}`);
+        } catch (error: any) {
+            logger.error(`query error: ${error.message}`);
             throw error;
         }
     }
@@ -66,8 +66,8 @@ export class DB {
             }
 
             return result.changes;
-        } catch (error) {
-            console.error(`execute error: ${error}`);
+        } catch (error: any) {
+            logger.error(`execute error: ${error.message}`);
             throw error;
         }
     }
@@ -75,8 +75,8 @@ export class DB {
     transaction(callback: () => void): void {
         try {
             this.db.transaction(callback)();
-        } catch (error) {
-            console.error(`createTransaction error: ${error}`);
+        } catch (error: any) {
+            logger.error(`createTransaction error: ${error.message}`);
             throw error;
         }
     }

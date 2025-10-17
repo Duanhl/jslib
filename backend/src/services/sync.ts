@@ -28,6 +28,7 @@ export class SyncService implements ISyncService {
 
     async syncMovie(args: { sn: string; }): Promise<Movie> {
         const {sn} = args;
+        const start = Date.now();
         const providers = [this.javbusProvider, this.javlibProvider, this.mankoProvider, this.missavProvider];
         const promises = providers.map(provider => provider.fetchMovie(sn));
         const results = await Promise.allSettled(promises);
@@ -76,7 +77,7 @@ export class SyncService implements ISyncService {
                 await this.torrentService.saveTorrent(torrent)
             }
             movie.torrents = torrents;
-            logger.info(`sync movie for ${sn} successfully.`);
+            logger.info(`sync movie for ${sn} successfully. cost: ${(Date.now() - start) / 1000} s`);
             return movie;
         } else {
             logger.info(`sync movie for ${sn} Failed`);
@@ -122,13 +123,15 @@ export class SyncService implements ISyncService {
             }
         }
 
-        console.info(`sync movies for ${name}, movies: ${JSON.stringify(needSync)}`);
+        logger.info(`sync movies for ${name}, movies: ${JSON.stringify(needSync)}`);
         this.movieService.insertActor(actor);
 
         const movies = [] as Movie[];
         for (const sn of needSync) {
             movies.push(await this.syncMovie({sn}));
         }
+
+        logger.info(`sync movies for ${name} success`);
         await this.movieService.calcActorScore(name);
         return movies;
     }

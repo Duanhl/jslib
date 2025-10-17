@@ -6,6 +6,7 @@ import * as cheerio from "cheerio";
 import {BrowserService} from "./browser";
 import {RankMovie} from "../types";
 import * as opencc from "opencc-js";
+import logger from "../../common/logs";
 
 const t2s   = opencc.Converter({ from: 'tw', to: 'cn' })
 
@@ -43,7 +44,10 @@ export class MissavProvider implements IProvider {
                 }
             }
             return;
-        } finally {
+        } catch (e: any) {
+           logger.error(`fetchMovie error ${keyword} by missav: ${e}`);
+           return
+        }finally {
             await page.close();
         }
     }
@@ -70,7 +74,8 @@ export class MissavProvider implements IProvider {
         if(!result['コード']) {
             return
         }
-        const genres = (result['ジャンル'] as string[]) ?.map((item) => {
+        const genresSource = typeof result['ジャンル'] === 'string' ? [result['ジャンル']] : result['ジャンル'] as string[];
+        const genres = genresSource.map((item) => {
             return t2s(item);
         });
         return {

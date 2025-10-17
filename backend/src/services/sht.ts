@@ -1,5 +1,6 @@
 import {DB} from "../db";
 import {IThreadService, Thread} from '@jslib/common'
+import logger from "../common/logs";
 
 const TABLE = "sht_form"
 
@@ -72,8 +73,8 @@ export class ShtService implements IThreadService {
                 total: total,
             };
 
-        } catch (error) {
-            console.error('search failed:', error);
+        } catch (error: any) {
+            logger.error(`search failed: ${error.message}`);
             throw error;
         }
     }

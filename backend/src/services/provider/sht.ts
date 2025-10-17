@@ -191,8 +191,8 @@ export class ShtProvider implements IProvider {
                                     threads[i] = {...thread, ...parsed};
                                 }
                                 await sleep(randomInt(500, 1000))
-                            } catch (e) {
-                                console.error(`sync details for ${thread.url} failed: ${e}`);
+                            } catch (e: any) {
+                                logger.error(`sync details for ${thread.url} failed: ${e.message}`);
                             }
                         }
                     }
@@ -206,7 +206,7 @@ export class ShtProvider implements IProvider {
             }
 
             if (this.isTracing) {
-                console.log(`fetch done, result has ${result.length} threads`);
+                logger.info(`fetch done, result has ${result.length} threads`);
             }
             return result;
         } catch (e: any) {

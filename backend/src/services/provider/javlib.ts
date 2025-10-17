@@ -5,6 +5,7 @@ import {RankMovie} from "../types";
 import axios from "axios";
 import * as cheerio from "cheerio";
 import {extractAmateurCode, extractCode, extractFC2} from "../../common/utils";
+import logger from "../../common/logs";
 
 export class JavlibProvider implements IProvider {
     private axiosInstance;
@@ -201,7 +202,7 @@ export class JavlibProvider implements IProvider {
 
             return undefined;
         } catch (error) {
-            console.error('Error fetching movie from JavLib:', error);
+            logger.error(`Error fetching ${keyword} from JavLib: ${error}`);
             return undefined;
         }
     }
@@ -260,7 +261,7 @@ export class JavlibProvider implements IProvider {
                 });
             }
         } catch (error) {
-            console.error('Error fetching rank movies from JavLib:', error);
+            logger.error(`Error fetching rank movies from JavLib: ${error}`);
         }
 
         return rankMovies;
