@@ -11,6 +11,7 @@ import {JavlibProvider} from "./provider/javlib";
 import {JavbusProvider} from "./provider/javbus";
 import {Manko} from "./provider/manko";
 import {MissavProvider} from "./provider/missav";
+import {sleep} from "../utils";
 
 
 describe('Sync Form', () => {
@@ -103,6 +104,30 @@ describe('Sync Form', () => {
             const taskId = await syncService.syncStar({name: 'メロディー・雛・マークス'}, true);
             console.log(taskId);
         })
+
+        it('sync series', async () => {
+            const taskId = await syncService.syncSeries({name: "nmsl".toUpperCase()});
+            while (true) {
+                const status = await syncService.taskDetails({taskId});
+                if(status.status === 'success' || status.status === 'error') {
+                    return
+                }
+                await sleep(3000)
+            }
+        })
+    })
+
+
+    describe('del movie', () => {
+        it('should ', async () => {
+            const movies = await movieService.list({
+                keyword: "T-",
+                type: "series"
+            })
+            for (const m of movies.data) {
+                await movieService.delMovie({sn: m.sn});
+            }
+        });
     })
 
 })

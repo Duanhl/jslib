@@ -1,7 +1,6 @@
-import {FetchOptions, IProvider, RankType} from "./provider";
+import {FetchOptions, IProvider} from "./provider";
 import {Config} from "../../config";
-import {Comment, Movie} from "@jslib/common";
-import {RankMovie} from "../types";
+import {Comment, Movie, RankMovie, RankType} from "@jslib/common";
 import axios from "axios";
 import * as cheerio from "cheerio";
 import {extractAmateurCode, extractCode, extractFC2} from "../../common/utils";
@@ -218,7 +217,7 @@ export class JavlibProvider implements IProvider {
         try {
             let maxPages = 10;
             if (type === 'popular') {
-                return []
+                maxPages = 1;
             }
 
             for (let page = 1; page <= maxPages && rankMovies.length < limit; page++) {
@@ -231,6 +230,9 @@ export class JavlibProvider implements IProvider {
                     case 'mostWanted':
                         url = `vl_mostwanted.php?model=1&page=${page}`;
                         break;
+                    case "popular":
+                        url = ``;
+                        break
                     default:
                         continue;
                 }

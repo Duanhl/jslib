@@ -7,7 +7,7 @@ import {Movie, Torrent} from "@jslib/common";
  * @returns {string[]}
  */
 export function extractCode(text: string): string | undefined {
-    const m = text.match(/\b([A-Z]{1,6})-?(\d{2,5})\b/);
+    const m = text.match(/\b([A-Z]{1,7})-?(\d{2,5})\b/);
     return m ? `${m[1]}-${m[2]}` : undefined;
 }
 

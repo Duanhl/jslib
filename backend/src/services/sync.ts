@@ -1,13 +1,12 @@
 import {ShtProvider} from "./provider/sht";
 import {ShtService} from "./sht";
 import {TorrentService} from "./torrent";
-import {ISyncService, Movie, Thread, Torrent, ActorInfo, EventMsg} from "@jslib/common";
+import {ISyncService, Movie, Thread, Torrent, ActorInfo, EventMsg, RankType, RankMovie} from "@jslib/common";
 import {JavlibProvider} from "./provider/javlib";
 import {Manko} from "./provider/manko";
 import {JavbusProvider} from "./provider/javbus";
 import {MovieService} from "./movie";
-import {RankType} from "./provider/provider";
-import {isBlacked, RankMovie} from "./types";
+import {isBlacked} from "./types";
 import {Config} from "../config";
 import {MissavProvider} from "./provider/missav";
 import {extractCode, extractFC2OrCode, mergeMovie} from "../common/utils";

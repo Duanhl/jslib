@@ -1,3 +1,16 @@
+
+export type RankType = 'bestRated' | 'mostWanted' | 'popular';
+
+export interface RankMovie {
+    sn?: string;
+    title?: string;
+    releaseDate?: string;
+    type?: RankType;
+    thumbUrl?: string;
+    homepage?: string;
+    provider?: string;
+}
+
 export interface Thread {
     threadId: number;
     form: number;
@@ -131,6 +144,8 @@ export interface ISyncService {
     syncSeries(args: {name: string }): Promise<number>;
 
     taskDetails(args: { taskId: number }): Promise<EventMsg>;
+
+    syncRank(args: {type: RankType, start?: number, end?: number}): Promise<RankMovie[]>
 }
 
 export interface ConfigItem {

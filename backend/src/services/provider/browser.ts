@@ -28,8 +28,8 @@ export class BrowserService {
     }
 
     private async loadBrowser(): Promise<Browser> {
-        const { firefox } = await import('playwright');
-        const browser = await firefox.launch({
+        const { chromium } = await import('playwright');
+        const browser = await chromium.launch({
             headless: true,
             timeout: 30000,
         });

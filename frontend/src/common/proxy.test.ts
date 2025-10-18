@@ -1,5 +1,5 @@
 import {describe, it} from 'vitest'
-import {toService} from "./proxy";
+import {syncService, toService} from "./proxy";
 
 describe('proxy', () => {
 
@@ -12,4 +12,11 @@ describe('proxy', () => {
         const r = await service.call('1', 1, 2)
         console.log(r)
     });
+
+    describe('sync()', () => {
+        it('popular', async () => {
+            const result =  await syncService.syncRank({type: 'popular', start: 1, end: 2});
+            console.log(result);
+        })
+    })
 });

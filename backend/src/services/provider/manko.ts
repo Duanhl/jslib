@@ -1,8 +1,7 @@
 import {decode91, extractFC2} from "../../common/utils";
-import {FetchOptions, IProvider, RankType} from "./provider";
-import {RankMovie} from "../types";
+import {FetchOptions, IProvider} from "./provider";
 import {Config} from "../../config";
-import {ActorInfo, Movie, Torrent} from "@jslib/common";
+import {ActorInfo, Movie, RankMovie, RankType, Torrent} from "@jslib/common";
 
 interface MankoMovie {
     _id: string;

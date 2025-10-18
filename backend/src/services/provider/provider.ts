@@ -1,5 +1,5 @@
-import {RankMovie } from "../types";
-import {ActorInfo, Movie, Thread} from "@jslib/common";
+
+import {ActorInfo, Movie, RankMovie, RankType, Thread} from "@jslib/common";
 
 export interface FetchOptions<T> {
     save?: (t: T) => void | Promise<void>;
@@ -7,8 +7,6 @@ export interface FetchOptions<T> {
     start?: number;
     end?: number;
 }
-
-export type RankType = 'bestRated' | 'mostWanted' | 'popular';
 
 export interface IProvider {
 

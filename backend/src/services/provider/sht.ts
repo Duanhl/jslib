@@ -167,7 +167,7 @@ export class ShtProvider implements IProvider {
             let isCookieLoad = false;
             const result: Thread[] = [];
             for (let i = start; i < end; i++) {
-                const url = `${this.host}/forum-${form}-${i}.html`;
+                const url = `${this.host}forum-${form}-${i}.html`;
 
                 await page.goto(url, {waitUntil: 'domcontentloaded'});
                 if (!isCookieLoad) {

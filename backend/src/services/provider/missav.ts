@@ -1,5 +1,5 @@
-import {FetchOptions, IProvider, RankType} from "./provider";
-import {Movie, MovieListType} from "@jslib/common";
+import {FetchOptions, IProvider} from "./provider";
+import {Movie, MovieListType, RankMovie, RankType} from "@jslib/common";
 import {
     extractCode,
     extractFC2,
@@ -11,7 +11,6 @@ import {
 import {Config} from "../../config";
 import * as cheerio from "cheerio";
 import {BrowserService} from "./browser";
-import {RankMovie} from "../types";
 import * as opencc from "opencc-js";
 import logger from "../../common/logs";
 
@@ -105,7 +104,7 @@ export class MissavProvider implements IProvider {
         try {
             switch (type) {
                 case "popular":
-                    for (let i = 1; i < 5; i++) {
+                    for (let i = 1; i < 2; i++) {
                         const url = `${this._host}all?sort=today_views&page=${i}`
                         await page.goto(url, {waitUntil: 'domcontentloaded'});
                         const html = await page.content();

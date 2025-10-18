@@ -1,6 +1,5 @@
-import {IMovieService, Movie, Torrent, Video, Comment, MovieListType, ActorInfo} from "@jslib/common";
+import {IMovieService, Movie, Torrent, Video, Comment, MovieListType, ActorInfo, RankMovie} from "@jslib/common";
 import {DB} from "../db";
-import {RankMovie} from "./types";
 import {calcActorScore} from "./score";
 import os from "node:os";
 
