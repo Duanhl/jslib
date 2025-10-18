@@ -1,3 +1,4 @@
+import {Movie, Torrent} from "@jslib/common";
 
 
 /**
@@ -130,4 +131,118 @@ export function toSnake(obj: PlainObj): PlainObj {
         res[snake] = obj[key];
     }
     return res;
+}
+
+export function mergeMovie(a: Movie, b: Movie): Movie {
+    const result: Movie = {} as Movie;
+
+    // 合并普通属性
+    const simpleFields: (keyof Movie)[] = [
+        'sn', 'title', 'director', 'duration', 'maker', 'publisher',
+        'releaseDate', 'series', 'score', 'wanted', 'location', 'coled'
+    ];
+
+    simpleFields.forEach(field => {
+        const aValue = a[field];
+        const bValue = b[field];
+
+        if (hasValue(bValue)) {
+            // @ts-ignore
+            result[field] = bValue;
+        } else if (hasValue(aValue)) {
+            // @ts-ignore
+            result[field] = aValue;
+        }
+    });
+
+    // 合并数组属性 - actors
+    if (a.actors || b.actors) {
+        result.actors = mergeArrays(a.actors, b.actors);
+    }
+
+    // 合并数组属性 - associates
+    if (a.associates || b.associates) {
+        result.associates = mergeArrays(a.associates, b.associates);
+    }
+
+    // 合并数组属性 - players
+    if (a.players || b.players) {
+        result.players = mergeArrays(a.players, b.players);
+    }
+
+    // 合并数组属性 - previewImages
+    if (a.previewImages || b.previewImages) {
+        result.previewImages = mergeArrays(a.previewImages, b.previewImages);
+    }
+
+    // 合并 genres - 去重合并
+    if (a.genres || b.genres) {
+        const allGenres = [...(a.genres || []), ...(b.genres || [])];
+        result.genres = Array.from(new Set(allGenres)).filter(hasValue);
+    }
+
+    // 合并 torrents - 按 magnet 去重
+    if (a.torrents || b.torrents) {
+        const torrentMap = new Map<string, Torrent>();
+
+        // 先添加 a 的 torrents
+        (a.torrents || []).forEach(torrent => {
+            if (torrent.magnet) {
+                torrentMap.set(torrent.magnet, torrent);
+            }
+        });
+
+        // 再添加/覆盖 b 的 torrents
+        (b.torrents || []).forEach(torrent => {
+            if (torrent.magnet) {
+                torrentMap.set(torrent.magnet, torrent);
+            }
+        });
+
+        result.torrents = Array.from(torrentMap.values());
+    }
+
+    // 合并 comments
+    if (a.comments || b.comments) {
+        result.comments = [...(a.comments || []), ...(b.comments || [])];
+    }
+
+    // 合并 coverUrl - 优先级处理
+    result.coverUrl = mergeCoverUrl(a.coverUrl, b.coverUrl);
+
+    return result;
+}
+
+// 辅助函数：检查值是否有意义
+function hasValue(value: any): boolean {
+    if (value === undefined || value === null) return false;
+    if (value === '') return false;
+    if (Array.isArray(value) && value.length === 0) return false;
+    if (value === 0) return false; // 根据需求，0 被认为是空值
+    return true;
+}
+
+// 辅助函数：合并数组
+function mergeArrays(a?: any[], b?: any[]): any[] {
+    const aArray = a || [];
+    const bArray = b || [];
+
+    return bArray.length >= aArray.length ? [...bArray] : [...aArray];
+}
+
+// 辅助函数：合并 coverUrl，带优先级
+function mergeCoverUrl(a?: string, b?: string): string | undefined {
+    const urls = [a, b].filter(hasValue) as string[];
+
+    if (urls.length === 0) return undefined;
+
+    // 优先级排序：'cosmoimport' > 'healertanker' > 其他
+    const priorityUrls = urls.filter(url => url.includes('cosmoimport'));
+    if (priorityUrls.length > 0) return priorityUrls[0];
+
+    const secondaryUrls = urls.filter(url => url.includes('healertanker'));
+    if (secondaryUrls.length > 0) return secondaryUrls[0];
+
+    // 返回第一个有效的 URL
+    return urls[0];
 }

@@ -100,8 +100,8 @@ describe('Sync Form', () => {
 
     describe('sync star', () => {
         it('sync star', async () => {
-            const movies = await syncService.syncStar({name: 'メロディー・雛・マークス'}, true);
-            console.log(movies);
+            const taskId = await syncService.syncStar({name: 'メロディー・雛・マークス'}, true);
+            console.log(taskId);
         })
     })
 

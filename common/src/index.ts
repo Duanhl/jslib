@@ -115,16 +115,22 @@ export interface Video {
 }
 
 export interface EventMsg {
-    type?: 'syncStar';
-    msg: string;
-    timestamp?: string;
+    taskId: number;
+    total: number;
+    status: 'success' | 'error' | 'processing';
+    current: number;
+    message: string;
 }
 
 export interface ISyncService {
 
     syncMovie(args: { sn: string }): Promise<Movie>;
 
-    syncStar(args: { name: string }): Promise<Movie[] | string>;
+    syncStar(args: { name: string }): Promise<number>;
+
+    syncSeries(args: {name: string }): Promise<number>;
+
+    taskDetails(args: { taskId: number }): Promise<EventMsg>;
 }
 
 export interface ConfigItem {

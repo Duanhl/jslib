@@ -1,7 +1,7 @@
 import {ShtProvider} from "./provider/sht";
 import {ShtService} from "./sht";
 import {TorrentService} from "./torrent";
-import {ISyncService, Movie, Thread, Torrent, Comment, ActorInfo} from "@jslib/common";
+import {ISyncService, Movie, Thread, Torrent, ActorInfo, EventMsg} from "@jslib/common";
 import {JavlibProvider} from "./provider/javlib";
 import {Manko} from "./provider/manko";
 import {JavbusProvider} from "./provider/javbus";
@@ -9,13 +9,19 @@ import {MovieService} from "./movie";
 import {RankType} from "./provider/provider";
 import {isBlacked, RankMovie} from "./types";
 import {Config} from "../config";
-import {isUndefinedOrNull} from "../common/types";
 import {MissavProvider} from "./provider/missav";
-import {extractFC2OrCode} from "../common/utils";
+import {extractCode, extractFC2OrCode, mergeMovie} from "../common/utils";
 import logger from "../common/logs";
 
 
 export class SyncService implements ISyncService {
+    private taskMessages: Map<number, EventMsg> = new Map();
+    private taskTimestamps: Map<number, number> = new Map();
+    private taskQueue: Array<{ taskId: number; name: string, type: 'star' | 'series' }> = [];
+    private isProcessing: boolean = false;
+    private nextTaskId: number = 1;
+    private cleanupInterval: NodeJS.Timeout;
+
     constructor(private readonly shtProvider: ShtProvider,
                 private readonly javlibProvider: JavlibProvider,
                 private readonly mankoProvider: Manko,
@@ -24,6 +30,10 @@ export class SyncService implements ISyncService {
                 private readonly shtService: ShtService,
                 private readonly missavProvider: MissavProvider,
                 private readonly torrentService: TorrentService) {
+        // 启动定时清理任务，每1分钟检查一次
+        this.cleanupInterval = setInterval(() => {
+            this._cleanupCompletedTasks();
+        }, 60 * 1000);
     }
 
     async syncMovie(args: { sn: string; }): Promise<Movie> {
@@ -34,49 +44,20 @@ export class SyncService implements ISyncService {
         const results = await Promise.allSettled(promises);
 
         let movie = {} as Movie;
-        let actors: string[] = [];
-        let genres: string[] = [];
-        let previewImages: string[] = [];
-        let comments: Comment[] = [];
-        let torrents: Torrent[] = [];
-
         for (const result of results) {
             if (result.status === 'fulfilled' && result.value) {
                 const value = result.value;
-                movie = {...movie, ...Object.fromEntries(
-                        Object.entries(value).filter(([_, v]) => {
-                            return !isUndefinedOrNull(v);
-                        })
-                    )};
-                if (value.actors && value.actors?.length > actors.length) {
-                    actors = value.actors;
-                }
-                if (value.genres && value.genres.length > genres.length) {
-                    genres = value.genres;
-                }
-                if (value.previewImages && value.previewImages.length > previewImages.length) {
-                    previewImages = value.previewImages;
-                }
-                if (value.comments && value.comments.length > comments.length) {
-                    comments = value.comments;
-                }
-                if (value.torrents) {
-                    torrents.push(...value.torrents);
-                }
+                movie = mergeMovie(movie, value);
             }
         }
 
-        movie.actors = actors;
-        movie.genres = genres;
-        movie.previewImages = previewImages;
-        movie.comments = comments;
-
         if(movie.sn) {
             await this.movieService.createMovie(movie);
-            for (const torrent of torrents) {
-                await this.torrentService.saveTorrent(torrent)
+            if(movie.torrents) {
+                for (const torrent of movie.torrents) {
+                    await this.torrentService.saveTorrent(torrent)
+                }
             }
-            movie.torrents = torrents;
             logger.info(`sync movie for ${sn} successfully. cost: ${(Date.now() - start) / 1000} s`);
             return movie;
         } else {
@@ -86,16 +67,82 @@ export class SyncService implements ISyncService {
     }
 
 
-    async syncStar(args: { name: string; }, sync?: boolean): Promise<Movie[] | string> {
-        if (sync) {
-            return await this._doSyncStar(args);
-        }
-        this._doSyncStar(args);
-        return `start sync for ${args.name}`;
+    async syncStar(args: { name: string; }, sync?: boolean): Promise<number> {
+        const taskId = this.nextTaskId++;
+        const initialMsg: EventMsg = {
+            taskId,
+            total: 0,
+            current: 0,
+            status: 'processing',
+            message: `prepare sync task for ${args.name}`
+        };
+
+        this.taskMessages.set(taskId, initialMsg);
+        this.taskTimestamps.set(taskId, Date.now());
+        this.taskQueue.push({ taskId, name: args.name, type: 'star' });
+
+        this._processQueue();
+        return taskId;
     }
 
-    private async _doSyncStar(args: { name: string; }): Promise<Movie[]> {
-        const {name} = args;
+    async syncSeries(args: { name: string }): Promise<number> {
+        const taskId = this.nextTaskId++;
+        const initialMsg: EventMsg = {
+            taskId,
+            total: 0,
+            current: 0,
+            status: 'processing',
+            message: `prepare sync task for ${args.name}`
+        }
+
+        this.taskMessages.set(taskId, initialMsg);
+        this.taskTimestamps.set(taskId, Date.now());
+        this.taskQueue.push({ taskId, name: args.name, type: 'series' });
+
+        this._processQueue();
+        return taskId;
+    }
+
+    async taskDetails(args: { taskId: number }): Promise<EventMsg> {
+        const msg = this.taskMessages.get(args.taskId);
+        if (!msg) {
+            throw new Error(`task [${args.taskId}] not exists`);
+        }
+        return msg;
+    }
+
+    private async _processQueue(): Promise<void> {
+        if (this.isProcessing || this.taskQueue.length === 0) {
+            return;
+        }
+
+        this.isProcessing = true;
+
+        while (this.taskQueue.length > 0) {
+            const task = this.taskQueue.shift()!;
+            try {
+                if(task.type === 'star') {
+                    await this._doSyncStar(task.taskId, task.name);
+                } else if (task.type === 'series') {
+                    await this._doSyncSeries(task.taskId, task.name);
+                }
+            } catch (error: any) {
+                logger.error(`task ${task.taskId} failed: ${error.message}`);
+                // 更新任务状态为错误
+                this._updateTaskMessage(task.taskId, {
+                    taskId: task.taskId,
+                    total: 0,
+                    current: 0,
+                    status: 'error',
+                    message: `sync task for: ${error} failed`,
+                });
+            }
+        }
+
+        this.isProcessing = false;
+    }
+
+    private async _doSyncStar(taskId: number, name: string): Promise<Movie[]> {
         const sns = this.movieService.listSnByActor(name);
         const snSet = sns.reduce((acc, s) => acc.add(s), new Set<string>());
         const blackList = Config.blackList;
@@ -124,16 +171,123 @@ export class SyncService implements ISyncService {
         }
 
         logger.info(`sync movies for ${name}, movies: ${JSON.stringify(needSync)}`);
+        this._updateTaskMessage(taskId, {
+            taskId,
+            total: needSync.length,
+            current: 0,
+            status: 'processing',
+            message: `start sync for ${name}`,
+        });
+
         this.movieService.insertActor(actor);
 
         const movies = [] as Movie[];
+        let count = 1;
         for (const sn of needSync) {
-            movies.push(await this.syncMovie({sn}));
+            const movie = await this.syncMovie({sn});
+            if(movie.sn) {
+                this._updateTaskMessage(taskId, {
+                    taskId,
+                    total: needSync.length,
+                    current: count++,
+                    status: 'processing',
+                    message: `sync for ${movie.sn} successfully`,
+                });
+                movies.push(movie);
+            } else {
+                this._updateTaskMessage(taskId, {
+                    taskId,
+                    total: needSync.length,
+                    current: count++,
+                    status: 'processing',
+                    message: `sync for ${movie.sn} failed`,
+                });
+            }
         }
 
         logger.info(`sync movies for ${name} success`);
+        this._updateTaskMessage(taskId, {
+            taskId,
+            total: needSync.length,
+            current: needSync.length,
+            status: 'success',
+            message: `sync for ${name} successfully`,
+        });
         await this.movieService.calcActorScore(name);
         return movies;
+    }
+
+    private async _doSyncSeries(taskId: number, name: string): Promise<Movie[]> {
+        const sns = name + "-123";
+        if(!extractCode(sns)) {
+            this._updateTaskMessage(taskId, {
+                taskId,
+                status: 'success',
+                total: 0,
+                current: 0,
+                message: `sync series for ${name} successfully`,
+            })
+            return [] as Movie[];
+        }
+        const result = [] as Movie[];
+        const reallyName = extractCode(sns)?.split('-')[0];
+        let lastTime = "";
+        let failedCnt = 0
+        for (let i = 1; i < 1000; i++) {
+            const sn = reallyName + "-" + i.toString().padStart(3, "0");
+            try {
+                const dbMovie = await this.movieService.details({sn});
+                failedCnt = 0
+                lastTime = (dbMovie.releaseDate || '0000') > lastTime ? dbMovie.releaseDate! : lastTime;
+            } catch (e) {
+                const syncMovie = await this.syncMovie({sn});
+                if(syncMovie.sn) {
+                    failedCnt = 0
+                    lastTime = (syncMovie.releaseDate || '0000') > lastTime ? syncMovie.releaseDate! : lastTime;
+                    this._updateTaskMessage(taskId, {
+                        taskId,
+                        total: result.length,
+                        current: result.length,
+                        status: 'processing',
+                        message: `sync for ${syncMovie.sn} successfully`,
+                    })
+                } else {
+                    failedCnt++
+                    if(failedCnt === 3) {
+                        break;
+                    }
+                }
+            }
+        }
+        this._updateTaskMessage(taskId, {
+            taskId,
+            total: result.length,
+            current: result.length,
+            status: 'success',
+            message: `sync series for ${name} successfully`,
+        })
+        return result;
+    }
+
+    private _updateTaskMessage(taskId: number, msg: EventMsg): void {
+        this.taskMessages.set(taskId, msg);
+        this.taskTimestamps.set(taskId, Date.now());
+    }
+
+    private _cleanupCompletedTasks(): void {
+        const now = Date.now();
+        const tenMinutes = 10 * 60 * 1000;
+
+        for (const [taskId, timestamp] of this.taskTimestamps.entries()) {
+            const msg = this.taskMessages.get(taskId);
+            if (msg && (msg.status === 'success' || msg.status === 'error')) {
+                if (now - timestamp > tenMinutes) {
+                    this.taskMessages.delete(taskId);
+                    this.taskTimestamps.delete(taskId);
+                    logger.info(`clean task for ${taskId}`);
+                }
+            }
+        }
     }
 
     async syncRank(args: {type: RankType, start?: number, end?: number}): Promise<RankMovie[]> {
@@ -214,6 +368,12 @@ export class SyncService implements ISyncService {
             } catch (error: any) {
                 logger.error(`sync sht failed: ${error.message}}`);
             }
+        }
+    }
+
+    dispose() {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
         }
     }
 }

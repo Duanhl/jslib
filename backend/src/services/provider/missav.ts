@@ -1,6 +1,13 @@
 import {FetchOptions, IProvider, RankType} from "./provider";
 import {Movie, MovieListType} from "@jslib/common";
-import {extractCode, extractFC2, extractFC2OrCode, parseRelativeDay} from "../../common/utils";
+import {
+    extractCode,
+    extractFC2,
+    extractFC2OrCode,
+    extractAmateurCode,
+    parseRelativeDay,
+    extractT38
+} from "../../common/utils";
 import {Config} from "../../config";
 import * as cheerio from "cheerio";
 import {BrowserService} from "./browser";
@@ -22,7 +29,7 @@ export class MissavProvider implements IProvider {
     }
 
     async fetchMovie(keyword: string): Promise<Movie | undefined> {
-        if(!extractFC2OrCode(keyword)) {
+        if(!extractFC2(keyword) && !extractAmateurCode(keyword) && !extractT38(keyword)) {
             return
         }
         let path = extractFC2OrCode(keyword)!.toLowerCase();

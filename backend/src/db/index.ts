@@ -140,8 +140,12 @@ export class DB {
     }
 
     create(tableName: string,
-           obj: Record<string, any>) {
+           obj: Record<string, any>,
+           excludeCols?: string[]) {
         const entry = Object.entries(obj).reduce<Record<string, any>>((acc, [k, v]) => {
+            if(excludeCols && (excludeCols.indexOf(k) > -1)) {
+                return acc;
+            }
             if(v) {
                 const under = k.replace(/[A-Z]/g, m => '_' + m.toLowerCase());
                 if(v instanceof Array) {

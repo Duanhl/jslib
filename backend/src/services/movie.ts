@@ -58,13 +58,16 @@ export class MovieService implements IMovieService {
     async createMovie(movie: Movie): Promise<void> {
         this.db.transaction(() => {
             const {sn, comments} = movie;
-            movie.comments = undefined;
-            movie.torrents = undefined;
+
+            const exists: Movie[] = this.db.query(`select * from movies where sn = :sn`, {sn});
+            if(exists.length > 0) {
+                movie.coled = exists[0].coled
+            }
 
             this.db.execute(`delete
                              from movies
                              where sn = :sn`, {sn});
-            this.db.create('movies', movie);
+            this.db.create('movies', movie, ['comments', 'torrents']);
 
             if(movie.actors && movie.actors.length > 0) {
                 this.db.execute(`delete
