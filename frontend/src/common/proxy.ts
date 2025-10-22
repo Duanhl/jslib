@@ -2,7 +2,6 @@ import {Response} from "../api/api";
 import {IConfigService, IMovieService, ISyncService, IThreadService, ITorrentService} from "@jslib/common";
 
 const HOST = process.env.NODE_ENV === "development" ? "http://localhost:3123/api": "/api";
-// const HOST = "http://115.29.197.55:3123/api"
 
 export function toService<T extends object>(path: string): T {
     return new Proxy({}, {

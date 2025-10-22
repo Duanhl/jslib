@@ -10,7 +10,7 @@ describe('test calc score.', function () {
 
     describe('#calculate single', function () {
         it('小宵こなん', async () => {
-            const acotrs = ['森日向子', '小宵こなん', '北野未奈', '小野坂ゆいか', '宮下玲奈']
+            const acotrs = ['浜辺栞帆', '森日向子', '小宵こなん', '北野未奈', '小野坂ゆいか', '宮下玲奈']
             const cutDate = new Date(new Date().getTime() - 6.1 * 30 * 24 * 3600 * 1000).toISOString().split("T")[0];
             for(const actor of acotrs) {
                 const score = await calcActorScore(db, actor, cutDate);
@@ -21,10 +21,13 @@ describe('test calc score.', function () {
 
     describe('#calculate all amount', function () {
         it('calc all actors', async () => {
+            // const cutDate = new Date(new Date().getTime() - 6.1 * 30 * 24 * 3600 * 1000).toISOString().split("T")[0];
             const actors = db.query(`select name from actors`);
-            for(const actor of actors) {
-                await calcActorScore(db, actor['name'], '2025-03-28');
-            }
+            console.log(actors.map((actor) => `"${actor.name}"`).join(', '));
+
+            // for(const actor of actors) {
+            //     await calcActorScore(db, actor['name'], cutDate);
+            // }
         });
     })
 })

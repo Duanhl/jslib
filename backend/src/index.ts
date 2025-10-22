@@ -16,6 +16,7 @@ import * as fs from "node:fs";
 import {registerJob} from "./common/scheduler";
 import {MissavProvider} from "./services/provider/missav";
 import logger from "./common/logs";
+import {SimilarityService} from "./services/similarity";
 
 const PORT = 3123;
 
@@ -26,8 +27,9 @@ class Server {
     async start(): Promise<void> {
         const config = this.initConfig();
         const db = new DB(config.dbpath);
+        const similarityService = new SimilarityService(db);
         const shtService = new ShtService(db);
-        const movieService = new MovieService(db);
+        const movieService = new MovieService(db, similarityService);
         const torrentService = new TorrentService(db);
 
         const browserService = new BrowserService();

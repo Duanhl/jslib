@@ -19,4 +19,17 @@ describe('proxy', () => {
             console.log(result);
         })
     })
+
+    describe('sync sht', () => {
+        it('sht', async () => {
+            const options = [
+                {form: 2, start: 1, end: 3, syncDetails: true},
+                {form: 36, start: 1, end: 3, syncDetails: true},
+                {form: 103, start: 1, end: 3, syncDetails: true},
+                {form: 95, start: 1, end: 10, syncDetails: false},
+            ]
+
+            await syncService.syncSht(options);
+        })
+    })
 });

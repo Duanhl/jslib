@@ -1,14 +1,14 @@
 import {DB} from "../db";
 
 export async function calcActorScore(db: DB, actor: string, cutDate: string) {
-    const sql = `select m.sn, m.score, m.wanted, m.release_date
+    const sql = `select m.sn, m.score, m.wanted, m.actors, m.release_date
                  from movies m
                           inner join actor_movie_relation amr on m.sn = amr.sn
                  where amr.actor = :actor
                    and amr.release_date > :cutDate`;
     const movies = db.query(sql, {actor, cutDate});
     for (const movie of movies) {
-        movie['adjust'] = adjustScore(movie.score, movie.wanted, movie.releaseDate, cutDate);
+        movie['adjust'] = adjustScore(movie.score, movie.wanted, movie.actors, movie.releaseDate, cutDate);
     }
     const filter = movies.filter(m => m.adjust > 0);
     let score = 0;
@@ -21,7 +21,7 @@ export async function calcActorScore(db: DB, actor: string, cutDate: string) {
     return score;
 }
 
-function adjustScore(score: number, wanted: number, releaseDate: string, cutDate: string): number {
+function adjustScore(score: number, wanted: number, actors: string, releaseDate: string, cutDate: string): number {
     if (!score || isNaN(score)) {
         return 0;
     }
@@ -44,7 +44,15 @@ function adjustScore(score: number, wanted: number, releaseDate: string, cutDate
     const slope = 0.2 / 7;
     const coeff = 1.0 + delta * slope;
 
-    return score * likedCoeff * Math.max(0.8, coeff);
+    let actoreff = 1.0;
+    if(actors) {
+        const actorcnt = actors.split(",").length;
+        if(actorcnt >= 10) {
+            actoreff = 0;
+        }
+    }
+
+    return score * likedCoeff * Math.max(0.8, coeff) * actoreff;
 }
 
 function monthDiff(a: Date, b: Date): number {

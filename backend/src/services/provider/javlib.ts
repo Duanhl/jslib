@@ -3,7 +3,7 @@ import {Config} from "../../config";
 import {Comment, Movie, RankMovie, RankType} from "@jslib/common";
 import axios from "axios";
 import * as cheerio from "cheerio";
-import {extractAmateurCode, extractCode, extractFC2} from "../../common/utils";
+import {extractAmateurCode, extractCode, extractFC2, mergeMovie} from "../../common/utils";
 import logger from "../../common/logs";
 
 export class JavlibProvider implements IProvider {
@@ -28,7 +28,7 @@ export class JavlibProvider implements IProvider {
 
     private async _requestWithRandomDelay(url: string): Promise<string> {
         // 添加随机延迟（1-3秒）
-        const delay = Math.floor(Math.random() * 2000) + 1000;
+        const delay = Math.floor(Math.random() * 1000) + 1000;
         await new Promise(resolve => setTimeout(resolve, delay));
 
         const response = await this.axiosInstance.get(url);
@@ -166,29 +166,29 @@ export class JavlibProvider implements IProvider {
             const searchHtml = await this._requestWithRandomDelay(searchUrl);
             const $search = cheerio.load(searchHtml);
 
-            let movieHomepage = '';
-            let selected = false;
+            const homepages = [] as string[];
 
             $search('.videothumblist .videos .video').each((_, element) => {
                 const $element = $search(element);
                 const sn = $element.find('.id').text().trim();
 
-                if (sn === keyword && !selected) {
+                if (sn === keyword) {
                     const href = $element.find('a').attr('href');
                     if (href) {
-                        movieHomepage = href.substring(2); // 去掉开头的../
-
-                        // 特殊前缀处理
-                        if (!sn.startsWith('ABF') && !sn.startsWith('MIDV')) {
-                            selected = true;
-                        }
+                        const movieHomepage = href.substring(2); // 去掉开头的../
+                        homepages.push(movieHomepage)
                     }
                 }
             });
 
             // 如果找到了具体的主页，直接获取详细信息
-            if (movieHomepage) {
-                return await this._getMovieInfoByURL(movieHomepage);
+            let result = {} as Movie;
+            for (const url of homepages) {
+                const m = await this._getMovieInfoByURL(url);
+                result = mergeMovie(result, m);
+            }
+            if(result.sn && result.title) {
+                return result;
             }
 
             // 如果没有找到具体主页，尝试从搜索结果页面解析

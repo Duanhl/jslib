@@ -16,7 +16,7 @@ import logger from "../common/logs";
 export class SyncService implements ISyncService {
     private taskMessages: Map<number, EventMsg> = new Map();
     private taskTimestamps: Map<number, number> = new Map();
-    private taskQueue: Array<{ taskId: number; name: string, type: 'star' | 'series' }> = [];
+    private taskQueue: Array<{ taskId: number; name: string, type: 'star' | 'series', needAll?: boolean }> = [];
     private isProcessing: boolean = false;
     private nextTaskId: number = 1;
     private cleanupInterval: NodeJS.Timeout;
@@ -66,19 +66,19 @@ export class SyncService implements ISyncService {
     }
 
 
-    async syncStar(args: { name: string; }, sync?: boolean): Promise<number> {
+    async syncStar(args: { name: string; needAll?: boolean }, sync?: boolean): Promise<number> {
         const taskId = this.nextTaskId++;
         const initialMsg: EventMsg = {
             taskId,
             total: 0,
             current: 0,
             status: 'processing',
-            message: `prepare sync task for ${args.name}`
+            message: `准备开始 ${args.name}`
         };
 
         this.taskMessages.set(taskId, initialMsg);
         this.taskTimestamps.set(taskId, Date.now());
-        this.taskQueue.push({ taskId, name: args.name, type: 'star' });
+        this.taskQueue.push({ taskId, name: args.name, type: 'star', needAll: args.needAll });
 
         this._processQueue();
         return taskId;
@@ -91,7 +91,7 @@ export class SyncService implements ISyncService {
             total: 0,
             current: 0,
             status: 'processing',
-            message: `prepare sync task for ${args.name}`
+            message: `准备开始 ${args.name}`
         }
 
         this.taskMessages.set(taskId, initialMsg);
@@ -121,7 +121,7 @@ export class SyncService implements ISyncService {
             const task = this.taskQueue.shift()!;
             try {
                 if(task.type === 'star') {
-                    await this._doSyncStar(task.taskId, task.name);
+                    await this._doSyncStar(task.taskId, task.name, task.needAll);
                 } else if (task.type === 'series') {
                     await this._doSyncSeries(task.taskId, task.name);
                 }
@@ -133,7 +133,7 @@ export class SyncService implements ISyncService {
                     total: 0,
                     current: 0,
                     status: 'error',
-                    message: `sync task for: ${error} failed`,
+                    message: `任务 ${task.name} 失败`,
                 });
             }
         }
@@ -141,7 +141,7 @@ export class SyncService implements ISyncService {
         this.isProcessing = false;
     }
 
-    private async _doSyncStar(taskId: number, name: string): Promise<Movie[]> {
+    private async _doSyncStar(taskId: number, name: string, needAll: boolean = false): Promise<Movie[]> {
         const sns = this.movieService.listSnByActor(name);
         const snSet = sns.reduce((acc, s) => acc.add(s), new Set<string>());
         const blackList = Config.blackList;
@@ -175,13 +175,14 @@ export class SyncService implements ISyncService {
             total: needSync.length,
             current: 0,
             status: 'processing',
-            message: `start sync for ${name}`,
+            message: `开始任务 ${name}`,
         });
 
         this.movieService.insertActor(actor);
 
         const movies = [] as Movie[];
         let count = 1;
+        const stopDate = new Date(new Date().getTime() - 6.1 * 30 * 24 * 3600 * 1000).toISOString().split("T")[0];
         for (const sn of needSync) {
             const movie = await this.syncMovie({sn});
             if(movie.sn) {
@@ -190,16 +191,19 @@ export class SyncService implements ISyncService {
                     total: needSync.length,
                     current: count++,
                     status: 'processing',
-                    message: `sync for ${movie.sn} successfully`,
+                    message: `${movie.sn} 完成`,
                 });
                 movies.push(movie);
+                if(!needAll && movie.releaseDate && movie.releaseDate < stopDate) {
+                    break
+                }
             } else {
                 this._updateTaskMessage(taskId, {
                     taskId,
                     total: needSync.length,
                     current: count++,
                     status: 'processing',
-                    message: `sync for ${movie.sn} failed`,
+                    message: `${movie.sn} 失败`,
                 });
             }
         }
@@ -210,9 +214,9 @@ export class SyncService implements ISyncService {
             total: needSync.length,
             current: needSync.length,
             status: 'success',
-            message: `sync for ${name} successfully`,
+            message: `${name} 完成`,
         });
-        await this.movieService.calcActorScore(name);
+        await this.movieService.calcActorScore({name});
         return movies;
     }
 
@@ -224,7 +228,7 @@ export class SyncService implements ISyncService {
                 status: 'success',
                 total: 0,
                 current: 0,
-                message: `sync series for ${name} successfully`,
+                message: `任务 ${name} 完成`,
             })
             return [] as Movie[];
         }
@@ -248,7 +252,7 @@ export class SyncService implements ISyncService {
                         total: result.length,
                         current: result.length,
                         status: 'processing',
-                        message: `sync for ${syncMovie.sn} successfully`,
+                        message: `${syncMovie.sn} 完成`,
                     })
                 } else {
                     failedCnt++
@@ -263,7 +267,7 @@ export class SyncService implements ISyncService {
             total: result.length,
             current: result.length,
             status: 'success',
-            message: `sync series for ${name} successfully`,
+            message: `任务 ${name} 完成`,
         })
         return result;
     }

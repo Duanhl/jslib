@@ -23,6 +23,7 @@
     "cheerio": "^1.1.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "natural": "^8.1.0",
     "node-schedule": "^2.1.1",
     "opencc-js": "^1.0.5",
     "playwright": "^1.55.0"

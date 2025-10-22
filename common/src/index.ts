@@ -78,12 +78,16 @@ export type MovieListType = 'actress' | 'series' | 'genre' | 'popular' | 'bestRa
 export interface IMovieService {
     details(args: { sn: string }): Promise<Movie>;
 
+    similarity(args: { sn: string }): Promise<Movie[]>;
+
     list(args: { keyword: string, type: MovieListType, page?: number, pageSize?: number }): Promise<{
         data: Movie[],
         total: number
     }>;
 
     actor(args: { name: string }): Promise<ActorInfo>;
+
+    calcActorScore(args: { name: string }): Promise<number>;
 
     listActors(args: { name?: string, page?: number, pageSize?: number }): Promise<{
         data: ActorInfo[],
@@ -139,13 +143,20 @@ export interface ISyncService {
 
     syncMovie(args: { sn: string }): Promise<Movie>;
 
-    syncStar(args: { name: string }): Promise<number>;
+    syncStar(args: { name: string, needAll?: boolean }): Promise<number>;
 
     syncSeries(args: {name: string }): Promise<number>;
 
     taskDetails(args: { taskId: number }): Promise<EventMsg>;
 
     syncRank(args: {type: RankType, start?: number, end?: number}): Promise<RankMovie[]>
+
+    syncSht(options: ({
+        form: number;
+        start: number;
+        end: number;
+        syncDetails: boolean;
+    })[]): Promise<void>
 }
 
 export interface ConfigItem {

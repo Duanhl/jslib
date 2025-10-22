@@ -1,7 +1,8 @@
-import {IMovieService, Movie, Torrent, Video, Comment, MovieListType, ActorInfo, RankMovie} from "@jslib/common";
+import {ActorInfo, Comment, IMovieService, Movie, MovieListType, RankMovie, Torrent, Video} from "@jslib/common";
 import {DB} from "../db";
 import {calcActorScore} from "./score";
 import os from "node:os";
+import {SimilarityService} from "./similarity";
 
 export function formatterDate(date?: Date) {
     if (!date) {
@@ -20,7 +21,8 @@ const isPersonal = os.homedir().indexOf("1336") > -1;
 
 export class MovieService implements IMovieService {
 
-    constructor(private readonly db: DB) {
+    constructor(private readonly db: DB,
+                private readonly similarityService: SimilarityService,) {
     }
 
     async delMovie(args: { sn: string; }): Promise<void> {
@@ -97,6 +99,8 @@ export class MovieService implements IMovieService {
                 movie.comments = comments;
             }
         });
+
+        this.similarityService.calculateIncrementalSimilarities([movie.sn], 10)
     }
 
     async listVideos(args: { name: string, page?: number; pageSize?: number; }): Promise<{
@@ -217,6 +221,16 @@ export class MovieService implements IMovieService {
     }
 
 
+    async similarity(args: { sn: string; }): Promise<Movie[]> {
+        return this.db.query<Movie>(`
+            SELECT movies.id, movies.sn, movies.title, movies.cover_url, movies.coled, movies.release_date FROM movies
+                    inner join movie_similarities ms on ms.target_sn = movies.sn
+                where ms.source_sn = :sn
+                order by ms.score desc limit 10;`,
+            args);
+    }
+
+
     async details(args: { sn: string }): Promise<Movie> {
         const {sn} = args;
 
@@ -331,30 +345,79 @@ export class MovieService implements IMovieService {
         data: Movie[],
         total: number
     }> {
-        // 获取总数
-        const countResult = this.db.query<{ count: number }>(
-            "SELECT COUNT(*) as count FROM genre_movie_relation WHERE genre = :genre",
-            {genre}
-        );
-        const total = countResult[0]?.count || 0;
+        const genres = genre.split("|").map(v => v.trim());
+        if(genres.length > 1) {
+            // 构建IN查询的占位符和参数
+            const genrePlaceholders = genres.map((_, index) => `:genre${index}`).join(',');
+            const genreParams: any = {};
+                genres.forEach((g, index) => {
+                    genreParams[`genre${index}`] = g;
+                });
 
-        // 获取数据
-        const data = this.db.query<Movie>(
-            `SELECT m.*
-             FROM movies m
-                      JOIN genre_movie_relation gmr ON gmr.sn = m.sn
-             WHERE gmr.genre = :genre
-             ORDER BY m.release_date DESC LIMIT :limit
-             OFFSET :offset`,
-            {genre, limit: size, offset}
-        );
+                // 获取总数 - 查找包含所有指定类型的电影
+                const countResult = this.db.query<{ count: number }>(
+                    `SELECT COUNT(*) as count 
+                         FROM movies m
+                         WHERE m.sn IN (
+                             SELECT gmr.sn 
+                             FROM genre_movie_relation gmr 
+                             WHERE gmr.genre IN (${genrePlaceholders})
+                             GROUP BY gmr.sn 
+                             HAVING COUNT(DISTINCT gmr.genre) = ${genres.length}
+                         )`,
+                    genreParams
+                );
+                const total = countResult[0]?.count || 0;
 
-        const moviesWithLocation = await this._addLocationsToMovies(data);
+                // 获取数据 - 查找包含所有指定类型的电影
+                const data = this.db.query<Movie>(
+                    `SELECT m.*
+                     FROM movies m
+                     WHERE m.sn IN (
+                         SELECT gmr.sn 
+                         FROM genre_movie_relation gmr 
+                         WHERE gmr.genre IN (${genrePlaceholders})
+                         GROUP BY gmr.sn 
+                         HAVING COUNT(DISTINCT gmr.genre) = ${genres.length}
+                     )
+                     ORDER BY m.release_date DESC 
+                     LIMIT :limit OFFSET :offset`,
+                            { ...genreParams, limit: size, offset }
+                        );
 
-        return {
-            data: moviesWithLocation,
-            total
-        };
+                const moviesWithLocation = await this._addLocationsToMovies(data);
+
+                return {
+                    data: moviesWithLocation,
+                    total
+                };
+        } else {
+            // 获取总数
+            const countResult = this.db.query<{ count: number }>(
+                "SELECT COUNT(*) as count FROM genre_movie_relation WHERE genre = :genre",
+                {genre}
+            );
+            const total = countResult[0]?.count || 0;
+
+            // 获取数据
+            const data = this.db.query<Movie>(
+                `SELECT m.*
+                     FROM movies m
+                              JOIN genre_movie_relation gmr ON gmr.sn = m.sn
+                     WHERE gmr.genre = :genre
+                     ORDER BY m.release_date DESC LIMIT :limit
+                     OFFSET :offset`,
+                {genre, limit: size, offset}
+            );
+
+            const moviesWithLocation = await this._addLocationsToMovies(data);
+
+            return {
+                data: moviesWithLocation,
+                total
+            };
+        }
+
     }
 
     private async _listMovieBySNPrefix(snPrefix: string, page: number, size: number, offset: number): Promise<{
@@ -433,9 +496,9 @@ export class MovieService implements IMovieService {
         this.db.createOrUpdate('actors', actor, 'name');
     }
 
-    async calcActorScore(actor: string) {
+    async calcActorScore(args: {name: string}): Promise<number> {
         const cutDate = new Date(new Date().getTime() - 6.1 * 30 * 24 * 3600 * 1000).toISOString().split("T")[0];
-        await calcActorScore(this.db, actor, cutDate)
+        return await calcActorScore(this.db, args.name, cutDate)
     }
 
     private async _listMoviesByActor(actor: string, page: number, size: number, offset: number): Promise<{

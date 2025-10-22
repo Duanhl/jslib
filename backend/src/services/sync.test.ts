@@ -12,6 +12,7 @@ import {JavbusProvider} from "./provider/javbus";
 import {Manko} from "./provider/manko";
 import {MissavProvider} from "./provider/missav";
 import {sleep} from "../utils";
+import {SimilarityService} from "./similarity";
 
 
 describe('Sync Form', () => {
@@ -26,12 +27,12 @@ describe('Sync Form', () => {
     const manko = new Manko(config);
     const missavProvider = new MissavProvider(config, browserService);
 
-
     const db = new DB(config.dbpath);
+    const similarity = new SimilarityService(db);
     const shtService = new ShtService(db);
 
     const torrentService = new TorrentService(db);
-    const movieService = new MovieService(db);
+    const movieService = new MovieService(db, similarity);
 
     const syncService = new SyncService(shtScrapy, javlib, manko, javbus,
         movieService, shtService, missavProvider, torrentService);

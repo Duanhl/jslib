@@ -162,6 +162,10 @@ const Actor = () => {
                                     <Text type="secondary">{actor?.hobby}</Text>
                                     <Space size={32}>
                                         <Space>
+                                            <Text>{(actor?.score || 0).toFixed(2)}</Text>
+                                            <Text type="secondary">☆</Text>
+                                        </Space>
+                                        <Space>
                                             <Text>{actor?.height}</Text>
                                             <Text type="secondary">cm</Text>
                                         </Space>
@@ -192,8 +196,6 @@ const Actor = () => {
                                         <Card
                                             title={
                                                 <Space>
-                                                    <SyncOutlined />
-                                                    同步任务状态
                                                     {renderStatusTag()}
                                                 </Space>
                                             }
@@ -201,12 +203,6 @@ const Actor = () => {
                                             className="status-card"
                                         >
                                             <Space direction="vertical" style={{width: '100%'}} size={16}>
-                                                <div className="task-info">
-                                                    <Text strong>任务ID: </Text>
-                                                    <Text>#{String(syncTask.taskId).padStart(3, '0')}</Text>
-                                                    <Text strong style={{marginLeft: 16}}>状态: </Text>
-                                                    <Text>{syncTask.message}</Text>
-                                                </div>
                                                 {renderProgress()}
                                                 {syncTask.status !== 'processing' && (
                                                     <Button
